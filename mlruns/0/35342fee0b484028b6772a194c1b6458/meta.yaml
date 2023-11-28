@@ -1,0 +1,15 @@
+artifact_uri: file:///home/v-shengruili/compresso/mlruns/0/35342fee0b484028b6772a194c1b6458/artifacts
+end_time: 1700301555915
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 35342fee0b484028b6772a194c1b6458
+run_name: capable-auk-759
+run_uuid: 35342fee0b484028b6772a194c1b6458
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1700301250471
+status: 3
+tags: []
+user_id: FAREAST.v-shengruili
