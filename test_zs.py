@@ -34,7 +34,7 @@ def analyze(peft):
     MODEL_SIZE = 6476005376
     return (MODEL_SIZE-remaining_model_size)/MODEL_SIZE
 
-experiments = 'output/Compresso-pruning-s50.0-lr5e-05-reglr0.1-warmup1/2023-11-28-4-31'
+experiments = 'output/Compresso-pruning-s50.0-lr5e-05-reglr0.1-warmup1/layerdistill_prompt'
 checkpoints = os.listdir(experiments)
 for checkpoint in checkpoints:
     peft = os.path.join(experiments, checkpoint)
