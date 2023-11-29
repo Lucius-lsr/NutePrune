@@ -394,8 +394,7 @@ class EfficientTrainer(Trainer):
             # self.eval_counter.clear()
             # self.celoss_counter.clear()
             for step, inputs in enumerate(epoch_iterator):
-                if (self.prepruning_finetune_steps > 0 and self.global_step == self.prepruning_finetune_steps) or \
-                    (self.prepruning_finetune_steps == 0 and self.start_prune == False): 
+                if self.global_step == self.prepruning_finetune_steps: 
                     self.start_prune = True
                     lr_steps = self.t_total - self.global_step
                     self.create_optimizer_and_scheduler(lr_steps, self.start_prune)
@@ -492,12 +491,12 @@ class EfficientTrainer(Trainer):
                                 except:
                                     pass
 
-                        # try:
-                        self.l0_module.eval()
-                        zs = self.l0_module.forward(training=False)
-                        pruned_model_size_info = self.l0_module.calculate_model_size(zs)
-                        # except:
-                        #     pruned_model_size_info = {}
+                        try:
+                            self.l0_module.eval()
+                            zs = self.l0_module.forward(training=False)
+                            pruned_model_size_info = self.l0_module.calculate_model_size(zs)
+                        except:
+                            pruned_model_size_info = {}
 
                         if self.args.local_rank <= 0:
                             for k, v in pruned_model_size_info.items():
@@ -568,8 +567,7 @@ class EfficientTrainer(Trainer):
                     if not os.path.exists(epoch_output_dir):
                         os.makedirs(epoch_output_dir)
                     torch.save(lora_weights,'{}/lora_weights.pt'.format(epoch_output_dir))
-                    if self.zs == None and self.l0_module is not None:
-                        self.save_model_mask(epoch_output_dir)
+                    self.save_model_mask(epoch_output_dir)
                 except:
                     print("Save epoch results failed. Skip it.")
 
@@ -581,6 +579,14 @@ class EfficientTrainer(Trainer):
 
             if self.args.max_steps > 0 and self.global_step >= self.args.max_steps:
                 break
+
+            if epoch == 4:
+                # swtich to fine-tune
+                self.zs = self.l0_module.forward(training=False)
+                for key in self.zs:
+                    self.zs[key] = self.zs[key].detach()
+                self.l0_module = None
+                self.start_prune = False
             
         train_pbar.close()
 
@@ -912,10 +918,12 @@ class EfficientTrainer(Trainer):
         if not os.path.exists(output_dir):
             os.mkdir(output_dir)
         output_dir = output_dir if output_dir is not None else self.args.output_dir
-        torch.save(self.l0_module, os.path.join(output_dir, "l0_module.pt"))
-
-        zs = self.l0_module.forward(training=False)
-        torch.save(zs, os.path.join(output_dir, "zs.pt"))
+        if self.zs == None and self.l0_module is not None:
+            torch.save(self.l0_module, os.path.join(output_dir, "l0_module.pt"))
+            zs = self.l0_module.forward(training=False)
+            torch.save(zs, os.path.join(output_dir, "zs.pt"))
+        elif self.zs is not None:
+            torch.save(self.zs, os.path.join(output_dir, "zs.pt"))
 
     def calculate_layer_distillation_loss(self, teacher_outputs, student_outputs, zs):
         mse_loss = torch.nn.MSELoss(reduction="mean")
