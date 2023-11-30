@@ -142,7 +142,7 @@ def main():
                 lora_ckpt = lora_ckpt
             )
             model.half()  # accelerate
-            # teacher_model = copy.deepcopy(model)
+            training_args.fp16 = True
     else:
         raise ValueError("Training objective should be either cls or clm")
     

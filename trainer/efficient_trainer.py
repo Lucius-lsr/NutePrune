@@ -293,6 +293,7 @@ class EfficientTrainer(Trainer):
             trainable_params = sum([p.ds_numel if hasattr(p,'ds_numel') else p.numel() for p in self.model.parameters() if p.requires_grad])
             logger.info(f"Number of trainable parameters before applying LoRA: {trainable_params}")
             lora.mark_only_lora_as_trainable(self.model, bias=self.lora_train_bias)
+            lora.set_lora_as_float32(self.model)
             trainable_params = sum([p.ds_numel if hasattr(p,'ds_numel') else p.numel() for p in self.model.parameters() if p.requires_grad])
             logger.info(f"Number of trainable parameters after applying LoRA: {trainable_params}")
         self.state = TrainerState()
@@ -428,7 +429,7 @@ class EfficientTrainer(Trainer):
                     torch.nn.utils.clip_grad_norm_(
                         model.parameters(), self.args.max_grad_norm)
 
-                    # self.optimizer.step()
+                    self.optimizer.step()
                     if self.deepspeed:
                         self.deepspeed.step()
 
