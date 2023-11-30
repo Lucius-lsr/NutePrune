@@ -1,11 +1,11 @@
 export PYTHONPATH='.'
 
 base_model=baffo32/decapoda-research-llama-7B-hf
-pretrained_path=output/Compresso-pruning-s50.0-lr5e-05-reglr0.1-warmup1/layerdistill_prompt/epoch4
-prompt_mark=2 # 0: do not add pruning prompt during evaluation; 1: add the pruning prompt same as training; 2. add the pruning prompt for evaluation
+pretrained_dir=output/Compresso-pruning-s50.0-lr5e-05-reglr0.1-warmup1/layerdistill_prompt
+prompt_mark=0 # 0: do not add pruning prompt during evaluation; 1: add the pruning prompt same as training; 2. add the pruning prompt for evaluation
 lora_param=Q.V # the lora param in training
 
-for e in epoch1 epoch2 epoch3 epoch4 epoch5 epoch6
+for e in epoch2 epoch3
 do
     pretrained_path=$pretrained_dir/$e
     file_name=$(echo $pretrained_path | cut -d'/' -f $(($(echo $pretrained_path | tr '/' '\n' | wc -l) - 2)))
