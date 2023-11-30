@@ -29,6 +29,11 @@ def mark_only_lora_as_trainable(model: nn.Module, bias: str = 'none') -> None:
     else:
         raise NotImplementedError
 
+def set_lora_as_float32(model: nn.Module) -> None:
+    for n, p in model.named_parameters():
+        if 'lora_' in n:
+            p.data = p.data.float()
+
 
 def lora_state_dict(model: nn.Module, bias: str = 'none') -> Dict[str, torch.Tensor]:
     my_state_dict = model.state_dict()
@@ -220,12 +225,14 @@ class Linear(nn.Linear, LoRALayer):
             return w.transpose(0, 1) if self.fan_in_fan_out else w
         if self.r > 0 and not self.merged:
             result = F.linear(x, T(self.weight), bias=self.bias)
+            previous_dtype = x.dtype
+            x = x.to(self.lora_A.dtype)
             if self.r > 0:
                 result += (
                     (self.lora_dropout(x) @ self.lora_A.transpose(0, 1) @ self.lora_B.transpose(0, 1)) *
                     self.scaling
                 )
-            return result
+            return result.to(previous_dtype)
         else:
             return F.linear(x, T(self.weight), bias=self.bias)
     

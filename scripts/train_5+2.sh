@@ -19,7 +19,6 @@ python train.py \
     --do_train \
     --do_eval \
     --dataset_name c4 \
-    --overwrite_cache \
     --eval_dataset_name wikitext \
     --train_file ./data/alpaca_gpt4_data.json \
     --droprate_init 0.01 \
@@ -41,4 +40,3 @@ python train.py \
     --disable_tqdm False \
     --fp16 false \
     --random_init=False \
-    --do_distill \
