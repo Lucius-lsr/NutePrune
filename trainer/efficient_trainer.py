@@ -303,6 +303,8 @@ class EfficientTrainer(Trainer):
             self.model.gradient_checkpointing_enable()
         model = self._wrap_model(self.model_wrapped)
         self.model_wrapped = model
+        # import copy
+        # self.teacher_model = copy.deepcopy(model)
 
         # teacher model for distillation
         if self.additional_args.do_distill:
@@ -395,7 +397,7 @@ class EfficientTrainer(Trainer):
             # self.eval_counter.clear()
             # self.celoss_counter.clear()
             for step, inputs in enumerate(epoch_iterator):
-                if self.global_step == self.prepruning_finetune_steps: 
+                if self.l0_module is not None and self.global_step == self.prepruning_finetune_steps: 
                     self.start_prune = True
                     lr_steps = self.t_total - self.global_step
                     self.create_optimizer_and_scheduler(lr_steps, self.start_prune)
@@ -1061,6 +1063,7 @@ class EfficientTrainer(Trainer):
         distill_ce_loss = None
         if distill:
             with torch.no_grad():
+                # self.teacher_model.eval()
                 model.eval()
                 # only retain inputs of certain keys
                 teacher_inputs_keys = ["input_ids", "attention_mask", "token_type_ids", "position_ids", "labels",
@@ -1070,6 +1073,7 @@ class EfficientTrainer(Trainer):
                 self.shortens_inputs(teacher_inputs)
                 teacher_inputs['is_teacher'] = True
                 teacher_outputs = model(**teacher_inputs)
+                # teacher_outputs = self.teacher_model(**teacher_inputs)
             model.train()
             self.shortens_inputs(inputs)
             student_outputs = model(**inputs) #! get the two outputs

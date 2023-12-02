@@ -30,12 +30,14 @@ def analyze(peft):
     head_nums = np.outer(head_z.reshape(-1), hidden_z).sum().item() # 
     intermediate_nums = np.outer(intermediate_z.reshape(-1), hidden_z).sum().item()
     remaining_model_size = head_nums * (4096 // 32) * 4 + intermediate_nums * 3
-
     MODEL_SIZE = 6476005376
     return (MODEL_SIZE-remaining_model_size)/MODEL_SIZE
 
-experiments = 'output/Compresso-pruning-s50.0-lr5e-05-reglr0.1-warmup1/layerdistill_prompt'
+experiments = 'output/Compresso-pruning-s50.0-lr5e-05-reglr0.1-warmup1/corrected_distill'
 checkpoints = os.listdir(experiments)
 for checkpoint in checkpoints:
-    peft = os.path.join(experiments, checkpoint)
-    print(checkpoint, analyze(peft))
+    if checkpoint.startswith('epoch'):
+        peft = os.path.join(experiments, checkpoint)
+        print(checkpoint, analyze(peft))
+
+# analyze('output/Compresso-finetune-s50.0-lr5e-05-reglr0.1-warmup0/distill_c4_twomodel/epoch0')

@@ -184,7 +184,8 @@ class Linear(nn.Linear, LoRALayer):
         self.reset_parameters()
         if fan_in_fan_out:
             self.weight.data = self.weight.data.transpose(0, 1)
-        self.backup_lora()
+        self.is_teacher = False
+        # self.backup_lora()
         
     def backup_lora(self):
         self.lora_A_student = self.lora_A.data.clone()
@@ -223,7 +224,7 @@ class Linear(nn.Linear, LoRALayer):
     def forward(self, x: torch.Tensor):
         def T(w):
             return w.transpose(0, 1) if self.fan_in_fan_out else w
-        if self.r > 0 and not self.merged:
+        if self.r > 0 and not self.merged and not self.is_teacher:
             result = F.linear(x, T(self.weight), bias=self.bias)
             previous_dtype = x.dtype
             x = x.to(self.lora_A.dtype)
@@ -237,12 +238,13 @@ class Linear(nn.Linear, LoRALayer):
             return F.linear(x, T(self.weight), bias=self.bias)
     
     def set_teacher(self, is_teacher):
-        if is_teacher:
-            self.lora_A.data = self.lora_A_teacher
-            self.lora_B.data = self.lora_B_teacher
-        else:
-            self.lora_A.data = self.lora_A_student
-            self.lora_B.data = self.lora_B_student
+        self.is_teacher = is_teacher
+        # if is_teacher:
+        #     self.lora_A.data = self.lora_A_teacher
+        #     self.lora_B.data = self.lora_B_teacher
+        # else:
+        #     self.lora_A.data = self.lora_A_student
+        #     self.lora_B.data = self.lora_B_student
 
 
 class MergedLinear(nn.Linear, LoRALayer):
