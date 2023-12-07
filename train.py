@@ -123,6 +123,7 @@ def main():
             revision=model_args.model_revision,
             padding_side="left",
             truncation_side="left",
+            model_max_length=512,
         )
         if model_args.random_init:
             from transformers.deepspeed import deepspeed_config
