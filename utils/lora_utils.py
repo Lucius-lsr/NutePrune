@@ -187,11 +187,11 @@ class Linear(nn.Linear, LoRALayer):
         self.is_teacher = False
         # self.backup_lora()
         
-    def backup_lora(self):
-        self.lora_A_student = self.lora_A.data.clone()
-        self.lora_B_student = self.lora_B.data.clone()
-        self.lora_A_teacher = self.lora_A.data.clone()
-        self.lora_B_teacher = self.lora_B.data.clone()
+    # def backup_lora(self):
+    #     self.lora_A_student = self.lora_A.data.clone()
+    #     self.lora_B_student = self.lora_B.data.clone()
+    #     self.lora_A_teacher = self.lora_A.data.clone()
+    #     self.lora_B_teacher = self.lora_B.data.clone()
 
     def reset_parameters(self):
         nn.Linear.reset_parameters(self)

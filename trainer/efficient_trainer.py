@@ -370,13 +370,12 @@ class EfficientTrainer(Trainer):
             np.ceil(num_train_epochs)), desc="Epoch", disable=disable_tqdm)
 
         # self.evaluate()
-
-        def recursive_modify(module, f, target):
-            for m in module.children():
-                recursive_modify(m, f, target)
-                if isinstance(m, target):
-                    f(m)
-        recursive_modify(self.model, lambda m: m.backup_lora(), lora.Linear)
+        # def recursive_modify(module, f, target):
+        #     for m in module.children():
+        #         recursive_modify(m, f, target)
+        #         if isinstance(m, target):
+        #             f(m)
+        # recursive_modify(self.model, lambda m: m.backup_lora(), lora.Linear)
 
         # training
         for epoch in range(epochs_trained, int(np.ceil(num_train_epochs))): #! 20 epoch
@@ -584,14 +583,6 @@ class EfficientTrainer(Trainer):
 
             if self.args.max_steps > 0 and self.global_step >= self.args.max_steps:
                 break
-
-            if epoch == 4:
-                # swtich to fine-tune
-                self.zs = self.l0_module.forward(training=False)
-                for key in self.zs:
-                    self.zs[key] = self.zs[key].detach()
-                self.l0_module = None
-                self.start_prune = False
             
         train_pbar.close()
 
