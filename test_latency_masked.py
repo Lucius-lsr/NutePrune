@@ -88,16 +88,17 @@ def model_latency(model, tokenizer, size, zs=None):
         model.generate(
             input_ids,
             do_sample=True,
-            top_k=50,
-            top_p=0.95,
+            top_k=1,
+            top_p=1,
             num_return_sequences=1,
-            max_length=size,
+            min_new_tokens=size,
+            max_new_tokens=size,
             head_z=head_z,
             intermediate_z=intermediate_z,
             hidden_z=hidden_z,
         )
     t2 = time.time()
-    print(f'{(t2-t1)/100}')
+    print(f'{(t2-t1)}')
 
 def model_sparsity(hidden_z, head_z, intermediate_z):
     head_nums = np.outer(head_z.reshape(-1), hidden_z).sum().item() # 

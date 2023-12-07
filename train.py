@@ -113,9 +113,9 @@ def main():
         config = set_lora_args(config, model_args)
         if additional_args.do_layer_distill:
             config.output_hidden_states = True
-        if additional_args.pretrained_pruned_model is not None:
-            lora_ckpt = os.path.join(additional_args.pretrained_pruned_model, 'lora_weights.pt')
-            logger.info(f"Load lora ckpt from {lora_ckpt}")
+        # if additional_args.pretrained_pruned_model is not None:
+        #     lora_ckpt = os.path.join(additional_args.pretrained_pruned_model, 'lora_weights.pt')
+        #     logger.info(f"Load lora ckpt from {lora_ckpt}")
         tokenizer = LlamaTokenizer.from_pretrained(
             model_args.tokenizer_name if model_args.tokenizer_name else model_args.model_name_or_path,
             cache_dir=model_args.cache_dir,
@@ -123,6 +123,7 @@ def main():
             revision=model_args.model_revision,
             padding_side="left",
             truncation_side="left",
+            model_max_length=512,
         )
         if model_args.random_init:
             from transformers.deepspeed import deepspeed_config

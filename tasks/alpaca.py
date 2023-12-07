@@ -144,8 +144,8 @@ class SupervisedDataset(Dataset):
         list_data_dict = jload(data_path)
 
         logging.warning("Formatting inputs...")
-        # prompt_input, prompt_no_input = PROMPT_DICT["prompt_input"], PROMPT_DICT["prompt_no_input"]
-        prompt_input, prompt_no_input = PROMPT_DICT[f"pruning_prompt_input"], PROMPT_DICT[f"pruning_prompt_no_input"] # ADD PROMPT DATA
+        prompt_input, prompt_no_input = PROMPT_DICT["prompt_input"], PROMPT_DICT["prompt_no_input"]
+        # prompt_input, prompt_no_input = PROMPT_DICT[f"pruning_prompt_input"], PROMPT_DICT[f"pruning_prompt_no_input"] # ADD PROMPT DATA
         sources = [
             prompt_input.format_map(example) if example.get("input", "") != "" else prompt_no_input.format_map(example)
             for example in list_data_dict
