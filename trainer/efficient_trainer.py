@@ -142,7 +142,7 @@ class EfficientTrainer(Trainer):
                 logger.info(
                     f"{des}, number of params: {sum(p.nelement() for p in grouped_parameters['params'])}, weight_decay: {grouped_parameters['weight_decay']}, lr: {grouped_parameters['lr']}")
 
-        if self.optimizer is None:
+        if self.optimizer is None and self.use_lora:
             no_decay = ["bias", "LayerNorm.weight"]
             freeze_keywords = ["embeddings"]
 
@@ -186,7 +186,7 @@ class EfficientTrainer(Trainer):
                                                         self.args.adam_beta2),
                                                 eps=self.args.adam_epsilon)
         if self.lr_scheduler is None:
-            if self.additional_args.scheduler_type == "linear":
+            if self.additional_args.scheduler_type == "linear" and self.optimizer is not None:
                 self.lr_scheduler = get_linear_schedule_with_warmup(
                     self.optimizer, num_warmup_steps=self.args.warmup_steps, num_training_steps=num_training_steps
                 )
@@ -358,8 +358,8 @@ class EfficientTrainer(Trainer):
         model.zero_grad()
         if self.l0_module is not None:
             self.l0_module.zero_grad()
-
-        self.optimizer.zero_grad()
+        if self.optimizer is not None:
+            self.optimizer.zero_grad()
         if self.l0_optimizer is not None:
             self.l0_optimizer.zero_grad()
         if self.lagrangian_optimizer is not None:
@@ -431,9 +431,11 @@ class EfficientTrainer(Trainer):
                     torch.nn.utils.clip_grad_norm_(
                         model.parameters(), self.args.max_grad_norm)
 
-                    self.optimizer.step()
-                    if self.deepspeed:
-                        self.deepspeed.step()
+                    if self.optimizer is not None:
+                        if self.deepspeed:
+                            self.deepspeed.step()
+                        else:
+                            self.optimizer.step()
 
                     if self.l0_module is not None and self.l0_optimizer is not None:
                         self.l0_optimizer.step()

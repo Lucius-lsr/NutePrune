@@ -22,6 +22,7 @@ python train.py \
     --do_train \
     --do_eval \
     --dataset_name alpaca \
+    --overwrite_cache \
     --eval_dataset_name wikitext \
     --train_file ./data/alpaca_gpt4_data.json \
     --droprate_init 0.01 \
@@ -35,7 +36,7 @@ python train.py \
     --lora_rank 8 \
     --lora_train_bias none \
     --lora_alpha 8.0 \
-    --lora_param Q.V \
+    --lora_param Q.V.K.F.O \
     --lora_layers 32 \
     --gradient_checkpointing=True \
     --logging_first_step \

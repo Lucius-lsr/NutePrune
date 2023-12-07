@@ -28,12 +28,7 @@ python train.py \
     --overwrite_output_dir \
     --output_dir $OUTPUT_DIR/ \
     --cache_dir /dev/shm \
-    --use_lora True \
-    --lora_rank 8 \
-    --lora_train_bias none \
-    --lora_alpha 8.0 \
-    --lora_param Q.V \
-    --lora_layers 32 \
+    --use_lora False \
     --gradient_checkpointing=True \
     --logging_first_step \
     --logging_steps 10 \
