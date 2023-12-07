@@ -511,40 +511,40 @@ class EfficientTrainer(Trainer):
 
                         logger.info(f"{logs}, {pruned_model_size_info}")
 
-                        if self.l0_module is None and self.zs is not None:
-                            best_so_far = self.celoss_counter.update(
-                                self.epoch, self.global_step, logs["loss"])
-                            if best_so_far:
-                                best_dir = "./best/"
-                                if not os.path.exists(best_dir):
-                                    try:
-                                        os.makedirs(best_dir)
-                                    except:
-                                        pass
+                        # if self.l0_module is None and self.zs is not None:
+                        #     best_so_far = self.celoss_counter.update(
+                        #         self.epoch, self.global_step, logs["loss"])
+                        #     if best_so_far:
+                        #         best_dir = "./best/"
+                        #         if not os.path.exists(best_dir):
+                        #             try:
+                        #                 os.makedirs(best_dir)
+                        #             except:
+                        #                 pass
 
-                                best_loss_log = {
-                                    "best_eval_score_so_far": self.celoss_counter.best_ce_loss,
-                                    "best_step": self.celoss_counter.global_step,
-                                    "best_epoch": self.celoss_counter.epoch
-                                }
+                        #         best_loss_log = {
+                        #             "best_eval_score_so_far": self.celoss_counter.best_ce_loss,
+                        #             "best_step": self.celoss_counter.global_step,
+                        #             "best_epoch": self.celoss_counter.epoch
+                        #         }
 
-                                if self.args.local_rank <= 0:
-                                    for k, v in best_loss_log.items():
-                                        try:
-                                            mlflow.log_metric(k, v, step=self.global_step)
-                                        except:
-                                            pass
+                        #         if self.args.local_rank <= 0:
+                        #             for k, v in best_loss_log.items():
+                        #                 try:
+                        #                     mlflow.log_metric(k, v, step=self.global_step)
+                        #                 except:
+                        #                     pass
 
-                                # save model to container
-                                lora_weights = {}
-                                for n, m in model.named_parameters():
-                                    if 'lora_' in n:
-                                        gather = lora.should_gather(m)
-                                        with gather:
-                                            lora_weights[n.replace('module.','')] = m.data
-                                if self.args.local_rank <= 0:
-                                    torch.save(lora_weights, './best/lora_weights.pt')
-                                logger.info(f"Saving the best model so far: [Epoch {int(self.epoch)} | Step: {self.global_step} | Score: {round(self.celoss_counter.best_ce_loss, 5)}]")
+                        #         # save model to container
+                        #         lora_weights = {}
+                        #         for n, m in model.named_parameters():
+                        #             if 'lora_' in n:
+                        #                 gather = lora.should_gather(m)
+                        #                 with gather:
+                        #                     lora_weights[n.replace('module.','')] = m.data
+                        #         if self.args.local_rank <= 0:
+                        #             torch.save(lora_weights, './best/lora_weights.pt')
+                        #         logger.info(f"Saving the best model so far: [Epoch {int(self.epoch)} | Step: {self.global_step} | Score: {round(self.celoss_counter.best_ce_loss, 5)}]")
 
                 epoch_pbar.update(1)
                 torch.cuda.empty_cache()
@@ -552,28 +552,26 @@ class EfficientTrainer(Trainer):
                     break
 
             epoch_end = time.time()
-            self.evaluate()
+            # self.evaluate()
             torch.cuda.empty_cache()
-            if os.path.exists("./best/"):
-                os.system(f"cp -r ./best/ {self.args.output_dir}")
+            # if os.path.exists("./best/"):
+            #     os.system(f"cp -r ./best/ {self.args.output_dir}")
 
             # save model via azcopy
-            lora_weights = {}
-            for n, m in model.named_parameters():
-                if 'lora_' in n:
-                    gather = lora.should_gather(m)
-                    with gather:
-                        lora_weights[n.replace('module.','')] = m.data
             if self.args.local_rank <= 0:
-                try:
-                    epoch_output_dir = '{}/epoch{}'.format(self.args.output_dir, epoch)
-                    print("Epoch folder: ", epoch_output_dir)
-                    if not os.path.exists(epoch_output_dir):
-                        os.makedirs(epoch_output_dir)
+                epoch_output_dir = '{}/epoch{}'.format(self.args.output_dir, epoch)
+                print("Epoch folder: ", epoch_output_dir)
+                if not os.path.exists(epoch_output_dir):
+                    os.makedirs(epoch_output_dir)
+                if self.use_lora:
+                    lora_weights = {}
+                    for n, m in model.named_parameters():
+                        if 'lora_' in n:
+                            gather = lora.should_gather(m)
+                            with gather:
+                                lora_weights[n.replace('module.','')] = m.data
                     torch.save(lora_weights,'{}/lora_weights.pt'.format(epoch_output_dir))
-                    self.save_model_mask(epoch_output_dir)
-                except:
-                    print("Save epoch results failed. Skip it.")
+                self.save_model_mask(epoch_output_dir)
 
             logger.info(
                 f"Epoch {epoch} finished. Took {round(epoch_end - epoch_start, 2)} seconds.")
@@ -810,9 +808,9 @@ class EfficientTrainer(Trainer):
             metrics["expected_sparsity"] = expected_sparsity
             metrics["target_sparsity"] = target_sparsity
 
-            if (not self.start_saving_best) and (expected_sparsity - self.additional_args.target_sparsity >= -self.additional_args.sparsity_epsilon):
-                self.start_saving_best = True
-                logger.info(f"Starting saving the best from epoch {int(self.epoch)} and step {self.global_step}")
+            # if (not self.start_saving_best) and (expected_sparsity - self.additional_args.target_sparsity >= -self.additional_args.sparsity_epsilon):
+            #     self.start_saving_best = True
+            #     logger.info(f"Starting saving the best from epoch {int(self.epoch)} and step {self.global_step}")
 
         self.model.config.output_hidden_states = True
         self.model.config.output_attentions = True
