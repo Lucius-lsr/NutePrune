@@ -221,6 +221,10 @@ class HuggingFaceAutoLM(BaseLM):
         if peft is not None:
             if not lora_merged:
                 lora_ckpt = os.path.join(peft, 'lora_weights.pt')
+                if not os.path.exists(lora_ckpt):
+                    print('No lora module found, ignored!')
+                    lora_ckpt = None
+                    self._config.lora_param = ''
             zs = torch.load(os.path.join(peft, 'zs.pt'), map_location="cpu")
 
             if zs["head_z"].shape[0] < self._config.num_hidden_layers:

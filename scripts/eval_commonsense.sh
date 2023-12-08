@@ -1,7 +1,7 @@
 export PYTHONPATH='.'
 
 base_model=baffo32/decapoda-research-llama-7B-hf
-pretrained_dir=output/Compresso-finetune-s50.0-lr1e-05-reglr0.1-warmup0/distill_alpaca
+pretrained_dir=output/Compresso-pruning_only-s50.0-lr5e-05-reglr0.1-warmup1/2023-12-8-5-42
 prompt_mark=0 # 0: do not add pruning prompt during evaluation; 1: add the pruning prompt same as training; 2. add the pruning prompt for evaluation
 lora_param=Q.V # the lora param in training
 
