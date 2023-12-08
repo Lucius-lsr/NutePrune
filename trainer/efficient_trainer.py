@@ -943,7 +943,9 @@ class EfficientTrainer(Trainer):
                     # s_layer_o = self.model.layer_transformation(s_layer_o)
                     t_layer_o = t_layer_o.to(torch.float32)
                     s_layer_o = s_layer_o.to(torch.float32)
-                    l = mse_loss(t_layer_o, s_layer_o).to(torch.float16)
+                    s_layer_non_zero = s_layer_o[s_layer_o != 0]
+                    t_layer_non_zero = t_layer_o[s_layer_o != 0]
+                    l = mse_loss(t_layer_non_zero, s_layer_non_zero).to(torch.float16)
                     layer_losses.append(l)
                     if mlp_z is None or mlp_z[layer_num] > 0:
                         layer_loss += l
