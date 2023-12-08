@@ -387,21 +387,20 @@ class LlamaAttention(nn.Module):
                 f"hidden_size must be divisible by num_heads (got `hidden_size`: {self.hidden_size}"
                 f" and `num_heads`: {self.num_heads})."
             )
-        if should_apply_lora(config, "attention_qkv", block_index):
-            import utils.lora_utils as lora
-            lora_param_set = set(config.lora_param.split("."))
-            if "Q" in lora_param_set:
-                self.q_proj = lora.Linear(self.hidden_size, self.num_heads * self.head_dim, r=config.lora_rank, lora_alpha=config.lora_alpha, bias=False)
-            else:
-                self.q_proj = nn.Linear(self.hidden_size, self.num_heads * self.head_dim, bias=False)
-            if "K" in lora_param_set:  
-                self.k_proj = lora.Linear(self.hidden_size, self.num_heads * self.head_dim, r=config.lora_rank, lora_alpha=config.lora_alpha, bias=False)
-            else:
-                self.k_proj = nn.Linear(self.hidden_size, self.num_heads * self.head_dim, bias=False)
-            if "V" in lora_param_set:
-                self.v_proj = lora.Linear(self.hidden_size, self.num_heads * self.head_dim, r=config.lora_rank, lora_alpha=config.lora_alpha, bias=False)
-            else:
-                self.v_proj = nn.Linear(self.hidden_size, self.num_heads * self.head_dim, bias=False)
+        import utils.lora_utils as lora
+        lora_param_set = set(config.lora_param.split("."))
+        if config.use_lora and "Q" in lora_param_set:
+            self.q_proj = lora.Linear(self.hidden_size, self.num_heads * self.head_dim, r=config.lora_rank, lora_alpha=config.lora_alpha, bias=False)
+        else:
+            self.q_proj = nn.Linear(self.hidden_size, self.num_heads * self.head_dim, bias=False)
+        if config.use_lora and "K" in lora_param_set:
+            self.k_proj = lora.Linear(self.hidden_size, self.num_heads * self.head_dim, r=config.lora_rank, lora_alpha=config.lora_alpha, bias=False)
+        else:
+            self.k_proj = nn.Linear(self.hidden_size, self.num_heads * self.head_dim, bias=False)
+        if config.use_lora and "V" in lora_param_set:
+            self.v_proj = lora.Linear(self.hidden_size, self.num_heads * self.head_dim, r=config.lora_rank, lora_alpha=config.lora_alpha, bias=False)
+        else:
+            self.v_proj = nn.Linear(self.hidden_size, self.num_heads * self.head_dim, bias=False)
         if should_apply_lora(config, "attention_output", block_index):
             self.o_proj = lora.Linear(self.hidden_size, self.num_heads * self.head_dim, r=config.lora_rank, lora_alpha=config.lora_alpha, bias=False)
         else:    

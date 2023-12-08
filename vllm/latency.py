@@ -122,13 +122,13 @@ if __name__ == '__main__':
     pefts = [
         None,
         '../output/Compresso-pruning-s50.0-lr5e-05-reglr0.1-warmup1/small_combined_layerdistill_16bs/epoch2',
-        # 'output/Compresso-pruning-s50.0-lr5e-05-reglr0.1-warmup1/small_combined_distill/epoch1',
+        'output/Compresso-pruning-s50.0-lr5e-05-reglr0.1-warmup1/small_combined_distill/epoch1',
         # 'output/Compresso-pruning-s50.0-lr5e-05-reglr0.1-warmup1/20k_c4_2epoch_supervised/epoch1',
         '../output/Compresso-pruning-s50.0-lr5e-05-reglr0.1-warmup1/small_combined_distill_full_hidden/epoch4',
         'llm_pruner'
     ]
 
-    test_latency(pefts[3])
+    test_latency(pefts[2])
     # for peft in pefts:
     #     print(f'peft: {peft}')
     #     test_latency(peft)
