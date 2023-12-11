@@ -36,4 +36,5 @@ python train.py \
     --fp16 True \
     --random_init=False \
     --do_distill \
+    --do_iterative_distill \
     --do_layer_distill \

@@ -135,6 +135,9 @@ class EfficientTrainer(Trainer):
         self.lora_train_bias = lora_train_bias
         if self.use_lora:
             logger.info("LoRA enabled.")
+        if self.additional_args.do_iterative_distill:
+            from utils.distill_utils import IterativeDistillManager
+            self.iter_manager = IterativeDistillManager()
 
     def create_optimizer_and_scheduler(self, num_training_steps: int, build_l0_optimizer:bool=True):
         def log_params(param_groups, des):
@@ -1065,6 +1068,10 @@ class EfficientTrainer(Trainer):
                                   for key in teacher_inputs_keys if key in inputs}
                 self.shortens_inputs(teacher_inputs)
                 teacher_inputs['is_teacher'] = True
+                if self.additional_args.do_iterative_distill:
+                    teacher_zs = self.iter_manager.check_use_iterative_distill(self.t_total - self.global_step)
+                    if teacher_zs is not None:
+                        self.fill_inputs_with_zs(teacher_zs, teacher_inputs)
                 teacher_outputs = model(**teacher_inputs)
                 # teacher_outputs = self.teacher_model(**teacher_inputs)
             model.train()
@@ -1088,17 +1095,15 @@ class EfficientTrainer(Trainer):
             lagrangian_loss, expected_sparsity, target_sparsity = self.l0_module.lagrangian_regularization(
                 self.global_step - self.prepruning_finetune_steps)
             loss += lagrangian_loss
+            if self.additional_args.do_iterative_distill:
+                self.iter_manager.update(expected_sparsity.item(), zs, self.t_total - self.global_step)
         if self.args.n_gpu > 1:
             loss = loss.mean()  # mean() to average on multi-gpu parallel training
         if self.args.gradient_accumulation_steps > 1 and not self.deepspeed:
             loss = loss / self.args.gradient_accumulation_steps
 
         if self.deepspeed:
-            # loss gets scaled under gradient_accumulation_steps in deepspeed
-            # s = time.time()
             loss = self.deepspeed.backward(loss)  #10-22G * number of GPU
-            # e = time.time()
-            # print("Deepspeed backward. Time:{}".format(e - s))
         else:
             loss.backward()
         return {"loss": loss.detach(),
