@@ -8,42 +8,60 @@ from vllm.model_executor.models.llama import LlamaModel
 HEAD_DIM = 4096 // 32
 
 def load_zs(peft):
-    if peft == 'llm_pruner':
+    if peft == '16q8kv':
+        hidden_z = torch.from_numpy(np.ones(4096))
+        q_z = torch.from_numpy(np.ones((32, 32)))
+        kv_z = torch.from_numpy(np.ones((32, 32)))
+        intermediate_z = torch.from_numpy(np.ones((32, 11008)))
+        for i in range(32):
+            q_z[i][:16] = 0
+            kv_z[i][:24] = 0
+        return hidden_z > 0, q_z > 0, kv_z > 0, intermediate_z > 0
+    if peft == '12heads':
         hidden_z = torch.from_numpy(np.ones(4096))
         head_z = torch.from_numpy(np.ones((32, 32)))
         intermediate_z = torch.from_numpy(np.ones((32, 11008)))
-        for i in range(3,30):
-            head_z[i][:int(32*0.6)] = 0
-            intermediate_z[i][:int(11008*0.6)] = 0
-        return hidden_z > 0, head_z > 0, intermediate_z > 0
-    zs = torch.load(os.path.join(peft, 'zs.pt'), map_location="cpu")
-    hidden_z = zs['hidden_z'] if 'hidden_z' in zs.keys() else torch.from_numpy(np.ones(4096))
-    # print((hidden_z>0).sum().item())
-    # exit()
-    hidden_z = torch.from_numpy(np.concatenate([np.ones(3456),np.zeros(4096-3456)]))
-    head_z = zs['head_z']
-    intermediate_z = zs['intermediate_z']
-    hidden_z = hidden_z.detach() > 0
-    head_z = head_z.detach() > 0
-    intermediate_z = intermediate_z.detach() > 0
-    return hidden_z, head_z, intermediate_z
+        for i in range(32):
+            head_z[i][:20] = 0
+        return hidden_z > 0, head_z > 0, head_z > 0, intermediate_z > 0
+    if peft == '32q16kv':
+        hidden_z = torch.from_numpy(np.ones(4096))
+        q_z = torch.from_numpy(np.ones((32, 32)))
+        kv_z = torch.from_numpy(np.ones((32, 32)))
+        intermediate_z = torch.from_numpy(np.ones((32, 11008)))
+        for i in range(32):
+            kv_z[i][:16] = 0
+        return hidden_z > 0, q_z > 0, kv_z > 0, intermediate_z > 0
+    if peft == '24heads':
+        hidden_z = torch.from_numpy(np.ones(4096))
+        head_z = torch.from_numpy(np.ones((32, 32)))
+        intermediate_z = torch.from_numpy(np.ones((32, 11008)))
+        for i in range(32):
+            head_z[i][:8] = 0
+        return hidden_z > 0, head_z > 0, head_z > 0, intermediate_z > 0
 
-def prune_with_zs(model, hidden_z, head_z, intermediate_z):
+def prune_with_zs(model, hidden_z, q_z, kv_z, intermediate_z):
     for i, layer in enumerate(model.model.layers):
         # pruned heads
-        head_mask = head_z[i].reshape(-1, 1).repeat(1, HEAD_DIM).reshape(-1)
-        head_mask_3x = head_mask.reshape(1, -1).repeat(3, 1).reshape(-1)
-        layer.self_attn.qkv_proj.weight.data = layer.self_attn.qkv_proj.weight.data[head_mask_3x]
-        layer.self_attn.qkv_proj.output_size = head_mask_3x.sum().item()
-        layer.self_attn.o_proj.weight.data = layer.self_attn.o_proj.weight.data[:, head_mask]
-        layer.self_attn.o_proj.input_size = head_mask.sum().item()
-        layer.self_attn.num_heads = head_mask.sum().item() // HEAD_DIM
-        layer.self_attn.num_kv_heads = head_mask.sum().item() // HEAD_DIM
+        q_mask = q_z[i].reshape(-1, 1).repeat(1, HEAD_DIM).reshape(-1)
+        kv_mask = kv_z[i].reshape(-1, 1).repeat(1, HEAD_DIM).reshape(-1)
+        head_mask = torch.cat([q_mask, kv_mask, kv_mask], dim=0)
+        layer.self_attn.qkv_proj.weight.data = layer.self_attn.qkv_proj.weight.data[head_mask]
+        layer.self_attn.qkv_proj.output_size = head_mask.sum().item()
+        layer.self_attn.o_proj.weight.data = layer.self_attn.o_proj.weight.data[:, q_mask]
+        layer.self_attn.o_proj.input_size = q_mask.sum().item()
+        layer.self_attn.num_heads = q_mask.sum().item() // HEAD_DIM
+        layer.self_attn.num_kv_heads = kv_mask.sum().item() // HEAD_DIM
         layer.self_attn.q_size = layer.self_attn.num_heads * layer.self_attn.head_dim
         layer.self_attn.kv_size = layer.self_attn.num_kv_heads * layer.self_attn.head_dim
-        layer.self_attn.attn.num_heads = head_mask.sum().item() // HEAD_DIM
-        layer.self_attn.attn.num_kv_heads = head_mask.sum().item() // HEAD_DIM
-
+        layer.self_attn.attn.num_heads = q_mask.sum().item() // HEAD_DIM
+        layer.self_attn.attn.num_kv_heads = kv_mask.sum().item() // HEAD_DIM
+        assert layer.self_attn.attn.num_heads % layer.self_attn.attn.num_kv_heads == 0
+        layer.self_attn.attn.num_queries_per_kv = layer.self_attn.attn.num_heads // layer.self_attn.attn.num_kv_heads
+        layer.self_attn.attn.head_mapping = torch.repeat_interleave(
+            torch.arange(layer.self_attn.attn.num_kv_heads, dtype=layer.self_attn.attn.head_mapping.dtype, device="cuda"),
+            layer.self_attn.attn.num_queries_per_kv)
+        
         # pruned intermediate
         intermediate_mask = intermediate_z[i].reshape(-1)
         intermediate_mask_2x = intermediate_mask.reshape(1, -1).repeat(2, 1).reshape(-1)
@@ -84,7 +102,7 @@ def test_latency(peft):
     prompts = [
         '''Earn monthly interest on our Citibank Time Deposits (also known as Fixed Deposits). What's more, you can get to enjoy the flexibility of making partial withdrawals before maturity date of your Time Deposit. Partial withdrawals in multiples of the'''
     ]
-    prompts *= 128
+    # prompts *= 4
     # prompts = [
     #     "Hello, my name is",
     #     "The president of the United States is",
@@ -96,7 +114,7 @@ def test_latency(peft):
     # ]
 
     # Create a sampling params object.
-    sampling_params = SamplingParams(temperature=0.8, top_p=0.95, ignore_eos=True, max_tokens=256)
+    sampling_params = SamplingParams(temperature=0.8, top_p=0.95, ignore_eos=True, max_tokens=1024)
 
     # Create an LLM.
     llm = LLM(model="baffo32/decapoda-research-llama-7B-hf")
@@ -104,9 +122,9 @@ def test_latency(peft):
     # that contain the prompt, generated text, and other information.
 
     if peft is not None:
-        hidden_z, head_z, intermediate_z = load_zs(peft)
+        hidden_z, q_z, kv_z, intermediate_z = load_zs(peft)
         count_param(llm.llm_engine.workers[0].model)
-        prune_with_zs(llm.llm_engine.workers[0].model, hidden_z, head_z, intermediate_z)
+        prune_with_zs(llm.llm_engine.workers[0].model, hidden_z, q_z, kv_z, intermediate_z)
         print('after prune')
         count_param(llm.llm_engine.workers[0].model)
 
@@ -123,12 +141,13 @@ def test_latency(peft):
 
 if __name__ == '__main__':
     pefts = [
-        None,
-        'output/Compresso-pruning-s50.0-lr5e-05-reglr0.1-warmup1/small_combined_layerdistill_16bs/epoch2',
-        'output/Compresso-pruning-s50.0-lr5e-05-reglr0.1-warmup1/small_combined_distill/epoch1',
-        # 'output/Compresso-pruning-s50.0-lr5e-05-reglr0.1-warmup1/20k_c4_2epoch_supervised/epoch1',
-        'output/Compresso-pruning-s50.0-lr5e-05-reglr0.1-warmup1/small_combined_distill_full_hidden/epoch4',
-        'llm_pruner',
+        '16q8kv',
+        '12heads',
+        '32q16kv',
+        '24heads',
     ]
 
-    test_latency(pefts[2])
+    test_latency(pefts[3])
+    # for peft in pefts:
+    #     print(f'peft: {peft}')
+    #     test_latency(peft)

@@ -498,12 +498,12 @@ class EfficientTrainer(Trainer):
                                 except:
                                     pass
 
-                        try:
-                            self.l0_module.eval()
-                            zs = self.l0_module.forward(training=False)
-                            pruned_model_size_info = self.l0_module.calculate_model_size(zs)
-                        except:
-                            pruned_model_size_info = {}
+                        # try:
+                        self.l0_module.eval()
+                        zs = self.l0_module.forward(training=False)
+                        pruned_model_size_info = self.l0_module.calculate_model_size(zs)
+                        # except:
+                        #     pruned_model_size_info = {}
 
                         if self.args.local_rank <= 0:
                             for k, v in pruned_model_size_info.items():
@@ -512,7 +512,7 @@ class EfficientTrainer(Trainer):
                                 except:
                                     pass
 
-                        logger.info(f"{logs}, {pruned_model_size_info}")
+                        logger.info(f"{logs}, {pruned_model_size_info}, {zs['head_z'].squeeze()[-1]}")
 
                         # if self.l0_module is None and self.zs is not None:
                         #     best_so_far = self.celoss_counter.update(
@@ -1096,7 +1096,7 @@ class EfficientTrainer(Trainer):
                 self.global_step - self.prepruning_finetune_steps)
             loss += lagrangian_loss
             if self.additional_args.do_iterative_distill:
-                self.iter_manager.update(expected_sparsity.item(), zs, self.t_total - self.global_step)
+                self.iter_manager.update(expected_sparsity.item(), self.l0_module, self.t_total - self.global_step)
         if self.args.n_gpu > 1:
             loss = loss.mean()  # mean() to average on multi-gpu parallel training
         if self.args.gradient_accumulation_steps > 1 and not self.deepspeed:
@@ -1116,7 +1116,7 @@ class EfficientTrainer(Trainer):
 
     def fill_inputs_with_zs(self, zs, inputs):
         for key in zs:
-            inputs[key] = zs[key]
+            inputs[key] = zs[key].to(inputs["input_ids"].device)
         if self.l0_module is not None:
             inputs["block_layer_start"] = self.l0_module.block_layer_start
             inputs["block_layer_end"] = self.l0_module.block_layer_end

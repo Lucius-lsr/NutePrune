@@ -473,6 +473,12 @@ class LlamaAttention(nn.Module):
 
         past_key_value = (key_states, value_states) if use_cache else None
 
+        # query shape: [bsz, num_head, s_len, head_dim], key shape: [bsz, num_head, t_len, head_dim], value shape: [bsz, num_head, t_len, head_dim]
+        if head_z is not None and len(head_z.squeeze().shape) > 1:
+            idx = head_z.squeeze().max(-1)[1]
+            key_states = key_states.index_select(1, idx)
+            value_states = value_states.index_select(1, idx)
+
         attn_weights = torch.matmul(query_states, key_states.transpose(2, 3)) / math.sqrt(self.head_dim)
 
         if attn_weights.size() != (bsz, self.num_heads, q_len, kv_seq_len):
@@ -517,6 +523,8 @@ class LlamaAttention(nn.Module):
         #     head_z = (1.0 - (1.0 - head_z) * (1.0 - head_layer_z.detach() + head_layer_z))
 
         if head_z is not None:
+            if len(head_z.squeeze().shape) > 1:
+                head_z = head_z.max(2)[0]
             attn_output *= head_z
         attn_output = attn_output.transpose(1, 2)
         attn_output = attn_output.reshape(bsz, q_len, -1)

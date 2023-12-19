@@ -9,7 +9,7 @@ class IterativeDistillManager:
         self.reach_target = False
         self.iter_steps = -1
 
-    def update(self, sparsity, zs, remain_steps):
+    def update(self, sparsity, l0_module, remain_steps):
         if self.reach_target:
             return
         if self.cur_to_record == len(self.sparsity_to_record):
@@ -20,6 +20,7 @@ class IterativeDistillManager:
         target = self.sparsity_to_record[self.cur_to_record]
         if sparsity >= target:
             print('record zs at sparsity {}.'.format(target))
+            zs = l0_module.forward(training=False)
             self.recorded_zs.append(
                 {key:copy.deepcopy(zs[key].detach()) for key in zs.keys()}
             )

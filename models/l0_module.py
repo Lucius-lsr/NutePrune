@@ -139,6 +139,8 @@ class L0Module(Module):
             self.initialized_layer_structured_heads()
         elif module_name == "mlp_layer":
             self.initialize_whole_mlp()
+        elif module_name == 'structured_qkv':
+            self.initialize_structured_qkv()
             
     def add_one_module(self, z_loga, type, parameter_per_dim, size, shape): #! init the z_logas
         self.types.append(type)
@@ -171,6 +173,24 @@ class L0Module(Module):
             self.prunable_model_size += self.params_per_head * self.num_hidden_layers * self.num_attention_heads
             self.stable_model_size += self.params_per_head * self.stable_hidden_layers * self.num_attention_heads
         logger.info(f"Initialized structured heads! Prunable_model_size = {self.prunable_model_size}")
+    
+    def initialize_structured_qkv(self, add_prunable_model_size=True):
+        assert 'head' not in self.types
+        self.qkv_loga = Parameter(torch.Tensor(self.num_hidden_layers, self.num_attention_heads, self.num_attention_heads))
+        droprate_init = 0.95
+        mean = math.log(1 - droprate_init) - math.log(droprate_init)
+        self.qkv_loga.data.normal_(mean, 1e-2)
+        for i in range(self.num_hidden_layers):
+            for j in range(self.num_attention_heads):
+                self.qkv_loga.data[i][j][j] = 10
+        
+        self.add_one_module(self.qkv_loga, type="head",
+                            parameter_per_dim=self.params_per_head, size=self.num_attention_heads * self.num_attention_heads,
+                            shape=[self.num_hidden_layers, 1, self.num_attention_heads, self.num_attention_heads, 1, 1])
+        if add_prunable_model_size:
+            self.prunable_model_size += self.params_per_head * self.num_hidden_layers * self.num_attention_heads
+            self.stable_model_size += self.params_per_head * self.stable_hidden_layers * self.num_attention_heads
+        logger.info(f"Initialized structured qkv heads! Prunable_model_size = {self.prunable_model_size}")
 
     def initialized_layer_gate(self):
         n_layer = self.num_hidden_layers
@@ -250,7 +270,19 @@ class L0Module(Module):
             all_head_score = 1 - self.cdf_qz(0, self.headlayer_loga)
         else:
             all_head_score = None
-        head_score = 1 - self.cdf_qz(0, self.head_loga) # 32 * 32
+        if hasattr(self, 'head_loga') and self.head_loga is not None:
+            head_score = 1 - self.cdf_qz(0, self.head_loga) # 32 * 32
+        elif hasattr(self, 'qkv_loga') and self.qkv_loga is not None:
+            selected_q, idx = self.qkv_loga.max(dim=-1)
+            q_score = 1 - self.cdf_qz(0, selected_q)
+            masked_tensor = torch.zeros_like(self.qkv_loga, device=self.qkv_loga.device)
+            masked_tensor.fill_(-1e9)
+            masked_tensor.scatter_(-1, idx.unsqueeze(-1), selected_q.unsqueeze(-1))
+            selected_kv = masked_tensor.max(dim=-2)[0]
+            kv_score = 1 - self.cdf_qz(0, selected_kv)
+            head_score = (q_score + kv_score) / 2
+        else:
+            raise NotImplementedError
        
         if all_head_score is not None:
             all_head_score = all_head_score.view(-1, 1) # 32 * 1
@@ -418,7 +450,15 @@ class L0Module(Module):
     # during inference
     def _deterministic_z(self, size, loga):
         # Following https://github.com/asappresearch/flop/blob/e80e47155de83abbe7d90190e00d30bfb85c18d5/flop/hardconcrete.py#L8 line 103
-        expected_num_nonzeros = torch.sum(1 - self.cdf_qz(0, loga))
+        if loga.ndim > 1:
+            selected_q, idx = loga.max(dim=-1)
+            masked_tensor = torch.zeros_like(loga, device=loga.device)
+            masked_tensor.fill_(-1e9)
+            masked_tensor.scatter_(-1, idx.unsqueeze(-1), selected_q.unsqueeze(-1))
+            masked_score = 1 - self.cdf_qz(0, masked_tensor)
+            expected_num_nonzeros = torch.sum(masked_score)
+        else:
+            expected_num_nonzeros = torch.sum(1 - self.cdf_qz(0, loga))
         expected_num_zeros = size - expected_num_nonzeros.item()
         try:
             num_zeros = round(expected_num_zeros)
@@ -434,6 +474,11 @@ class L0Module(Module):
         if num_zeros > 0:
             if soft_mask.ndim == 0:
                 soft_mask = torch.tensor(0).to(loga.device)
+            elif soft_mask.ndim > 1:
+                soft_mask = soft_mask.reshape(-1)
+                _, indices = torch.topk(soft_mask, k=num_zeros, largest=False)
+                soft_mask[indices] = 0.
+                soft_mask = soft_mask.reshape(loga.shape)
             else:
                 _, indices = torch.topk(soft_mask, k=num_zeros, largest=False)
                 soft_mask[indices] = 0.
@@ -444,7 +489,16 @@ class L0Module(Module):
         for type in self.all_types:
             name = type[:-2]
             z = zs.get(type, np.ones(self.shapes[name]))
-            if torch.is_tensor(z): 
+            if torch.is_tensor(z) and name == 'head' and hasattr(self, 'qkv_loga') and self.qkv_loga is not None:  # qkv head
+                z = z.reshape(self.num_hidden_layers, self.num_attention_heads, self.num_attention_heads)
+                selected_q, idx = z.max(dim=-1)
+                masked_tensor = torch.zeros_like(z, device=z.device)
+                masked_tensor.scatter_(-1, idx.unsqueeze(-1), selected_q.unsqueeze(-1))
+                selected_kv = masked_tensor.max(dim=-2)[0]
+                q = selected_q.squeeze().detach().cpu().numpy() > 0
+                kv = selected_kv.squeeze().detach().cpu().numpy() > 0
+                z = (q.astype(np.float32) + kv.astype(np.float32))/2
+            elif torch.is_tensor(z): 
                 z = z.squeeze().detach().cpu().numpy() > 0
             numpified_zs[name] = z
         return numpified_zs

@@ -6,11 +6,11 @@ export OUTPUT_DIR=output
 mkdir -p $OUTPUT_DIR
 
 python train.py \
-    --pruning_type structured_heads+structured_mlp+hidden \
+    --pruning_type structured_qkv+structured_mlp \
     --target_sparsity 0.5 \
     --sparsity_epsilon 0.005 \
     --model_name_or_path baffo32/decapoda-research-llama-7B-hf \
-    --num_train_epochs 7 \
+    --num_train_epochs 5 \
     --learning_rate 5e-5 \
     --reg_learning_rate 0.1 \
     --lagrangian_warmup_epochs 1 \
@@ -36,5 +36,4 @@ python train.py \
     --fp16 True \
     --random_init=False \
     --do_distill \
-    --do_iterative_distill \
     --do_layer_distill \
