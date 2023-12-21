@@ -41,59 +41,6 @@ mlflow.autolog()
 
 logger = logging.get_logger(__name__)
 
-TRAINER_STATE_NAME = "trainer_state.json"
-
-
-class Eval_Counter():
-    def __init__(self):
-        self.epoch = 0
-        self.global_step = 0
-        self.best_eval_score = 0
-        self.near_sparsity_eval_times = 0
-        self.level_best_score = {0.85: 0, 0.8: 0, 0.7: 0,
-                                 0.6: 0, 0.75: 0, 0.9: 0, 0.95: 0, 0.65: 0}
-
-    def round_nearest(self, x, a):
-        return round(round(x / a) * a, -int(math.floor(math.log10(a))))
-
-    def update(self, epoch, global_step, eval_score):
-        best_so_far = False
-        if eval_score > self.best_eval_score:
-            self.epoch = epoch
-            self.global_step = global_step
-            self.best_eval_score = eval_score
-            best_so_far = True
-        return best_so_far
-
-    def clear(self):
-        self.eval_score = 0
-
-
-class CEloss_Counter():
-    def __init__(self):
-        self.epoch = 0
-        self.global_step = 0
-        self.best_ce_loss = 10e4
-        # self.near_sparsity_eval_times = 0
-        # self.level_best_score = {0.85: 0, 0.8: 0, 0.7: 0,
-        #                          0.6: 0, 0.75: 0, 0.9: 0, 0.95: 0, 0.65: 0}
-
-    def round_nearest(self, x, a):
-        return round(round(x / a) * a, -int(math.floor(math.log10(a))))
-
-    def update(self, epoch, global_step, ce_loss):
-        best_so_far = False
-        if ce_loss < self.best_ce_loss:
-            self.epoch = epoch
-            self.global_step = global_step
-            self.best_ce_loss = ce_loss
-            best_so_far = True
-        return best_so_far
-
-    def clear(self):
-        self.eval_score = 10e4
-
-
 class EfficientTrainer(Trainer):
     def __init__(
             self,
@@ -124,8 +71,6 @@ class EfficientTrainer(Trainer):
         self.l0_optimizer = None
         self.lagrangian_optimizer = None
         self.global_step = 0
-        self.eval_counter = Eval_Counter()
-        self.celoss_counter = CEloss_Counter()
         self.start_saving_best = False # if self.additional_args.pruning_type is None else False
 
         log_level = args.get_process_log_level()
@@ -195,58 +140,7 @@ class EfficientTrainer(Trainer):
                 )
             else:
                 self.lr_scheduler = None
-
         return
-
-    def get_eval_dataloader(self, eval_dataset: Optional[Dataset] = None) -> DataLoader:
-        """
-        Returns the evaluation [`~torch.utils.data.DataLoader`].
-
-        Subclass and override this method if you want to inject some custom behavior.
-
-        Args:
-            eval_dataset (`torch.utils.data.Dataset`, *optional*):
-                If provided, will override `self.eval_dataset`. If it is a [`~datasets.Dataset`], columns not accepted
-                by the `model.forward()` method are automatically removed. It must implement `__len__`.
-        """
-        if eval_dataset is None and self.eval_dataset is None:
-            raise ValueError("Trainer: evaluation requires an eval_dataset.")
-        eval_dataset = eval_dataset if eval_dataset is not None else self.eval_dataset
-        data_collator = default_data_collator#self.data_collator
-
-        if is_datasets_available() and isinstance(eval_dataset, datasets.Dataset):
-            eval_dataset = self._remove_unused_columns(eval_dataset, description="evaluation")
-        else:
-            data_collator = self._get_collator_with_removed_columns(data_collator, description="evaluation")
-
-        if isinstance(eval_dataset, torch.utils.data.IterableDataset):
-            if self.args.world_size > 1:
-                eval_dataset = IterableDatasetShard(
-                    eval_dataset,
-                    batch_size=self.args.per_device_eval_batch_size,
-                    drop_last=self.args.dataloader_drop_last,
-                    num_processes=self.args.world_size,
-                    process_index=self.args.process_index,
-                )
-            return DataLoader(
-                eval_dataset,
-                batch_size=self.args.eval_batch_size,
-                collate_fn=data_collator,
-                num_workers=self.args.dataloader_num_workers,
-                pin_memory=self.args.dataloader_pin_memory,
-            )
-
-        eval_sampler = self._get_eval_sampler(eval_dataset)
-
-        return DataLoader(
-            eval_dataset,
-            sampler=eval_sampler,
-            batch_size=self.args.eval_batch_size,
-            collate_fn=data_collator,
-            drop_last=self.args.dataloader_drop_last,
-            num_workers=self.args.dataloader_num_workers,
-            pin_memory=self.args.dataloader_pin_memory,
-        )
 
     def train(self,resume_from_checkpoint):
         self._memory_tracker.start()
@@ -388,8 +282,6 @@ class EfficientTrainer(Trainer):
 
             epoch_pbar = tqdm(epoch_iterator, desc="Iteration",
                               disable=disable_tqdm)
-            # self.eval_counter.clear()
-            # self.celoss_counter.clear()
             for step, inputs in enumerate(epoch_iterator):
                 if self.l0_module is not None and self.global_step == self.prepruning_finetune_steps: 
                     self.start_prune = True
