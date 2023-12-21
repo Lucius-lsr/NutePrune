@@ -512,7 +512,7 @@ class EfficientTrainer(Trainer):
                                 except:
                                     pass
 
-                        logger.info(f"{logs}, {pruned_model_size_info}, {zs['head_z'].squeeze()[-1]}")
+                        logger.info(f"{logs}, {pruned_model_size_info}")
 
                         # if self.l0_module is None and self.zs is not None:
                         #     best_so_far = self.celoss_counter.update(
