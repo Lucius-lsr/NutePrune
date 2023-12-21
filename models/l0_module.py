@@ -177,7 +177,7 @@ class L0Module(Module):
     def initialize_structured_qkv(self, add_prunable_model_size=True):
         assert 'head' not in self.types
         self.qkv_loga = Parameter(torch.Tensor(self.num_hidden_layers, self.num_attention_heads, self.num_attention_heads))
-        droprate_init = 0.95
+        droprate_init = 0.99
         mean = math.log(1 - droprate_init) - math.log(droprate_init)
         self.qkv_loga.data.normal_(mean, 1e-2)
         for i in range(self.num_hidden_layers):

@@ -514,70 +514,22 @@ class EfficientTrainer(Trainer):
 
                         logger.info(f"{logs}, {pruned_model_size_info}, {zs['head_z'].squeeze()[-1]}")
 
-                        # if self.l0_module is None and self.zs is not None:
-                        #     best_so_far = self.celoss_counter.update(
-                        #         self.epoch, self.global_step, logs["loss"])
-                        #     if best_so_far:
-                        #         best_dir = "./best/"
-                        #         if not os.path.exists(best_dir):
-                        #             try:
-                        #                 os.makedirs(best_dir)
-                        #             except:
-                        #                 pass
-
-                        #         best_loss_log = {
-                        #             "best_eval_score_so_far": self.celoss_counter.best_ce_loss,
-                        #             "best_step": self.celoss_counter.global_step,
-                        #             "best_epoch": self.celoss_counter.epoch
-                        #         }
-
-                        #         if self.args.local_rank <= 0:
-                        #             for k, v in best_loss_log.items():
-                        #                 try:
-                        #                     mlflow.log_metric(k, v, step=self.global_step)
-                        #                 except:
-                        #                     pass
-
-                        #         # save model to container
-                        #         lora_weights = {}
-                        #         for n, m in model.named_parameters():
-                        #             if 'lora_' in n:
-                        #                 gather = lora.should_gather(m)
-                        #                 with gather:
-                        #                     lora_weights[n.replace('module.','')] = m.data
-                        #         if self.args.local_rank <= 0:
-                        #             torch.save(lora_weights, './best/lora_weights.pt')
-                        #         logger.info(f"Saving the best model so far: [Epoch {int(self.epoch)} | Step: {self.global_step} | Score: {round(self.celoss_counter.best_ce_loss, 5)}]")
-
                 epoch_pbar.update(1)
                 torch.cuda.empty_cache()
                 if self.args.max_steps > 0 and self.global_step >= self.args.max_steps:
                     break
 
+                # save on specific steps
+                if self.global_step % 1330 == 0:
+                    self.save_checkpoint(model, f"step_{self.global_step}")
+
             epoch_end = time.time()
             # self.evaluate()
             torch.cuda.empty_cache()
-            # if os.path.exists("./best/"):
-            #     os.system(f"cp -r ./best/ {self.args.output_dir}")
 
-            # save model via azcopy
-            if self.args.local_rank <= 0:
-                epoch_output_dir = '{}/epoch{}'.format(self.args.output_dir, epoch)
-                print("Epoch folder: ", epoch_output_dir)
-                if not os.path.exists(epoch_output_dir):
-                    os.makedirs(epoch_output_dir)
-                if self.use_lora:
-                    lora_weights = {}
-                    for n, m in model.named_parameters():
-                        if 'lora_' in n:
-                            gather = lora.should_gather(m)
-                            with gather:
-                                lora_weights[n.replace('module.','')] = m.data
-                    torch.save(lora_weights,'{}/lora_weights.pt'.format(epoch_output_dir))
-                self.save_model_mask(epoch_output_dir)
+            self.save_checkpoint(model, f"epoch{epoch}")
 
-            logger.info(
-                f"Epoch {epoch} finished. Took {round(epoch_end - epoch_start, 2)} seconds.")
+            logger.info(f"Epoch {epoch} finished. Took {round(epoch_end - epoch_start, 2)} seconds.")
 
             epoch_pbar.close()
             train_pbar.update(1)
@@ -591,6 +543,22 @@ class EfficientTrainer(Trainer):
             # Clean the state at the end of training
             delattr(self, "_past")
         return TrainOutput(self.global_step, tr_loss.item() / self.global_step, None)
+
+    def save_checkpoint(self, model, name):
+        if self.args.local_rank <= 0:
+            epoch_output_dir = '{}/{}'.format(self.args.output_dir, name)
+            print("Epoch folder: ", epoch_output_dir)
+            if not os.path.exists(epoch_output_dir):
+                os.makedirs(epoch_output_dir)
+            if self.use_lora:
+                lora_weights = {}
+                for n, m in model.named_parameters():
+                    if 'lora_' in n:
+                        gather = lora.should_gather(m)
+                        with gather:
+                            lora_weights[n.replace('module.','')] = m.data
+                torch.save(lora_weights,'{}/lora_weights.pt'.format(epoch_output_dir))
+            self.save_model_mask(epoch_output_dir)
     
     def evaluation_loop(
         self,
