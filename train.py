@@ -219,18 +219,7 @@ def main():
 
     # Training
     if training_args.do_train:
-        checkpoint = None
-        if training_args.resume_from_checkpoint is not None:
-            checkpoint = training_args.resume_from_checkpoint
-        elif last_checkpoint is not None:
-            checkpoint = last_checkpoint
-        train_result = trainer.train(None)
-
-    # Evaluating
-    if training_args.do_eval:
-        metrics = trainer.evaluate(eval_dataset=data_module["eval_dataset"])
-        trainer.log_metrics("eval", metrics)
-
+        trainer.train(None)
 
 if __name__ == "__main__":
     '''
