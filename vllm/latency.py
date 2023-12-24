@@ -16,6 +16,14 @@ def load_zs(peft):
             head_z[i][:int(32*0.6)] = 0
             intermediate_z[i][:int(11008*0.6)] = 0
         return hidden_z > 0, head_z > 0, intermediate_z > 0
+    elif peft == 'sheared':
+        hidden_z = torch.from_numpy(np.ones(4096))
+        head_z = torch.from_numpy(np.ones((32, 32)))
+        intermediate_z = torch.from_numpy(np.ones((32, 11008)))
+        for i in range(32):
+            head_z[i][:16] = 0
+            intermediate_z[i][:5504] = 0
+        return hidden_z > 0, head_z > 0, intermediate_z > 0
     zs = torch.load(os.path.join(peft, 'zs.pt'), map_location="cpu")
     hidden_z = zs['hidden_z'] if 'hidden_z' in zs.keys() else torch.from_numpy(np.ones(4096))
     # print((hidden_z>0).sum().item())
@@ -84,7 +92,7 @@ def test_latency(peft):
     prompts = [
         '''Earn monthly interest on our Citibank Time Deposits (also known as Fixed Deposits). What's more, you can get to enjoy the flexibility of making partial withdrawals before maturity date of your Time Deposit. Partial withdrawals in multiples of the'''
     ]
-    prompts *= 128
+    # prompts *= 4
     # prompts = [
     #     "Hello, my name is",
     #     "The president of the United States is",
@@ -96,7 +104,7 @@ def test_latency(peft):
     # ]
 
     # Create a sampling params object.
-    sampling_params = SamplingParams(temperature=0.8, top_p=0.95, ignore_eos=True, max_tokens=256)
+    sampling_params = SamplingParams(temperature=0.8, top_p=0.95, ignore_eos=True, max_tokens=1024)
 
     # Create an LLM.
     llm = LLM(model="baffo32/decapoda-research-llama-7B-hf")
@@ -129,6 +137,7 @@ if __name__ == '__main__':
         # 'output/Compresso-pruning-s50.0-lr5e-05-reglr0.1-warmup1/20k_c4_2epoch_supervised/epoch1',
         'output/Compresso-pruning-s50.0-lr5e-05-reglr0.1-warmup1/small_combined_distill_full_hidden/epoch4',
         'llm_pruner',
+        'sheared',
     ]
 
-    test_latency(pefts[2])
+    test_latency(pefts[-1])

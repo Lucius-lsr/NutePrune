@@ -40,6 +40,7 @@ class AdditionalArguments():
     do_distill: bool = field(default=False, metadata={"help": "Whether to do distillation or not, prediction layer."})
     do_layer_distill: bool = field(default=False, metadata={"help": "Align layer output through distillation"})
     do_iterative_distill: bool = field(default=False, metadata={"help": "Iterative distillation"})
+    uniform: bool = field(default=False, metadata={"help": "Whether to use uniform distribution in layers."})
     layer_distill_version: int = field(default=2, metadata={"help": "1: add loss to each layer, 2: add loss to existing layers only"})
     distill_loss_alpha: float = field(default=0.9, metadata={"help": "Distillation loss weight"})
     distill_ce_loss_alpha: float = field(default=0.1, metadata={"help": "Distillation cross entrypy loss weight"})

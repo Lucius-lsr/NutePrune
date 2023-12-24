@@ -403,9 +403,9 @@ class EfficientTrainer(Trainer):
                 if self.args.max_steps > 0 and self.global_step >= self.args.max_steps:
                     break
 
-                # save on specific steps
-                if self.global_step % 1330 == 0:
-                    self.save_checkpoint(model, f"step_{self.global_step}")
+                # # save on specific steps
+                # if self.global_step % 1330 == 0:
+                #     self.save_checkpoint(model, f"step_{self.global_step}")
 
             epoch_end = time.time()
             torch.cuda.empty_cache()
@@ -624,7 +624,11 @@ class EfficientTrainer(Trainer):
         target_sparsity = None
         
         if self.start_prune :
-            lagrangian_loss, expected_sparsity, target_sparsity = self.l0_module.lagrangian_regularization(
+            if self.additional_args.uniform:
+                lagrangian_loss, expected_sparsity, target_sparsity = self.l0_module.layerwise_lagrangian_regularization(
+                self.global_step - self.prepruning_finetune_steps)
+            else:
+                lagrangian_loss, expected_sparsity, target_sparsity = self.l0_module.lagrangian_regularization(
                 self.global_step - self.prepruning_finetune_steps)
             loss += lagrangian_loss
             if self.additional_args.do_iterative_distill:

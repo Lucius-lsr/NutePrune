@@ -105,6 +105,8 @@ class L0Module(Module):
 
         self.lambda_1 = torch.nn.Parameter(torch.tensor(0.0))
         self.lambda_2 = torch.nn.Parameter(torch.tensor(0.0))
+        self.lambda_3 = torch.nn.Parameter(torch.tensor(0.0))
+        self.lambda_4 = torch.nn.Parameter(torch.tensor(0.0))
 
         self.lagrangian_warmup = lagrangian_warmup
         self.start_sparsity = start_sparsity
@@ -432,6 +434,35 @@ class L0Module(Module):
                 self.lambda_1 * (expected_sparsity - target_sparsity)
                 + self.lambda_2 * (expected_sparsity - target_sparsity) ** 2 #! where is the lambda 1 and lambda 2 from
         )
+        return lagrangian_loss, expected_sparsity, target_sparsity
+
+    def layerwise_lagrangian_regularization(self, pruned_steps):
+        target_sparsity = self.target_sparsity
+        if self.lagrangian_warmup > 0:
+            target_sparsity = self.get_target_sparsity(pruned_steps)
+        assert "hidden" not in self.types
+
+        all_head_score, head_score = self.transform_scores_for_head()
+        all_int_score, int_score = self.transform_scores_for_mlp()
+        assert all_head_score is None
+        assert all_int_score is None
+
+        expected_head = head_score.squeeze().sum(-1) / self.num_attention_heads
+        lagrangian_loss_head = (
+                self.lambda_1 * (expected_head - target_sparsity)
+                + self.lambda_2 * (expected_head - target_sparsity) ** 2
+        )
+
+        expected_int = int_score.squeeze().sum(-1) / self.intermediate_size
+        lagrangian_loss_int = (
+                self.lambda_3 * (expected_int - target_sparsity)
+                + self.lambda_4 * (expected_int - target_sparsity) ** 2
+        )
+
+        alpha = 10
+        lagrangian_loss = (lagrangian_loss_head.mean() + lagrangian_loss_int.mean())/2 * alpha
+        expected_size = self.get_num_parameters_and_constraint()
+        expected_sparsity = 1 - (expected_size + self.stable_model_size) / (self.prunable_model_size + self.stable_model_size)
         return lagrangian_loss, expected_sparsity, target_sparsity
 
     def get_eps(self, size):

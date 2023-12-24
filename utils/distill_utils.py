@@ -4,7 +4,7 @@ class IterativeDistillManager:
     def __init__(self):
         self.sparsity_interval = 0.01
         self.target = 0.5
-        self.teacher_ahead = 10
+        self.teacher_ahead = 2
 
         self.sparsity_to_record = [i*self.sparsity_interval for i in range(1, int(self.target/self.sparsity_interval))]
 
@@ -35,12 +35,12 @@ class IterativeDistillManager:
     def check_use_iterative_distill(self, remain_steps):
         if not self.reach_target:
             # version 1
-            return None
+            # return None
         
             # version 2
-            # if len(self.recorded_zs) == 0:
-            #     return None
-            # return self.recorded_zs[-1]
+            if len(self.recorded_zs) < self.teacher_ahead:
+                return None
+            return self.recorded_zs[-self.teacher_ahead]
         
         assert remain_steps <= self.iter_steps
         steps_interval = self.iter_steps // (len(self.recorded_zs) + 1)
