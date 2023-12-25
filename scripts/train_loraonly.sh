@@ -5,12 +5,10 @@ export TQDM_DISABLED=true
 export OUTPUT_DIR=output
 mkdir -p $OUTPUT_DIR
 
-baseline_pruned_model=output/Compresso-pruning-s50.0-lr5e-05-reglr0.1-warmup1/small_combined_layerdistill_16bs/epoch2
+baseline_pruned_model=output/Compresso-pruning_only-s50.0-lr5e-05-reglr0.1-warmup1/layerdis_iter_dense_dual_7/epoch6
 
 python train.py \
     --pruning_type None \
-    --target_sparsity 0.5 \
-    --sparsity_epsilon 0.005 \
     --model_name_or_path baffo32/decapoda-research-llama-7B-hf \
     --pretrained_pruned_model $baseline_pruned_model \
     --num_train_epochs 3 \
@@ -24,8 +22,7 @@ python train.py \
     --dataset_name alpaca \
     --overwrite_cache \
     --eval_dataset_name wikitext \
-    --train_file ./data/alpaca_gpt4_data.json \
-    --droprate_init 0.01 \
+    --train_file ./data/alpaca_data_cleaned.json \
     --per_device_train_batch_size 16 \
     --per_device_eval_batch_size 16 \
     --training_objective LM \
@@ -36,7 +33,7 @@ python train.py \
     --lora_rank 8 \
     --lora_train_bias none \
     --lora_alpha 8.0 \
-    --lora_param Q.V.K.F.O \
+    --lora_param Q.V \
     --lora_layers 32 \
     --gradient_checkpointing=True \
     --logging_first_step \

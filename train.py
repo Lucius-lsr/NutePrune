@@ -146,10 +146,6 @@ def main():
             training_args.fp16 = True
     else:
         raise ValueError("Training objective should be either cls or clm")
-    
-    if additional_args.do_layer_distill:
-        pass
-        # initialize_layer_transformation(model)
 
     l0_module = None
     if additional_args.pruning_type is not None:
@@ -171,19 +167,6 @@ def main():
         logger.info(f"Load pretrained zs!")
         for key in zs:
             zs[key] = zs[key].detach()
-        
-        if zs["head_z"].shape[0] < config.num_hidden_layers:
-            if zs["head_z"].shape[0] == 26:
-                zs["head_z"] = torch.concat([torch.ones(4, 1, 32, 1, 1), zs["head_z"], torch.ones(2, 1, 32, 1, 1)])
-                zs["intermediate_z"] = torch.concat([torch.ones(4, 1, 1, 11008), zs["intermediate_z"], torch.ones(2, 1, 1, 11008)])
-            elif zs["head_z"].shape[0] == 28:
-                zs["head_z"] = torch.concat([torch.ones(3, 1, 32, 1, 1), zs["head_z"], torch.ones(1, 1, 32, 1, 1)])
-                zs["intermediate_z"] = torch.concat([torch.ones(3, 1, 1, 11008), zs["intermediate_z"], torch.ones(1, 1, 1, 11008)])
-
-        if "layer_z" in zs:
-            zs['head_layer_z'] = zs['layer_z']
-            zs['mlp_z'] = zs['layer_z']
-            zs.pop('layer_z')
 
     # dataset initialize
     from tasks import get_data_module
@@ -191,11 +174,7 @@ def main():
         data_module = get_data_module(data_args.dataset_name)(tokenizer, model_args, data_args, training_args, model)
     else:
         data_module = get_data_module(data_args.dataset_name)(tokenizer, model_args, data_args, training_args)
-    # use wikitext2 test dataset to evaluate the performance of model on alpaca or math10k
-    wiki_module = get_data_module(additional_args.eval_dataset_name[0] if "wikitext" in additional_args.eval_dataset_name[0] else "wikitext")(tokenizer, model_args, data_args, training_args)
-    data_module['eval_dataset'] = wiki_module['eval_dataset']
-    data_module['compute_metrics'] = wiki_module['compute_metrics']
-    data_module['preprocess_logits_for_metrics'] = wiki_module['preprocess_logits_for_metrics']
+
     # Initialize our Trainer
     trainer = EfficientTrainer(
         model=model,
@@ -205,7 +184,6 @@ def main():
         use_lora=model_args.use_lora,
         lora_train_bias=model_args.lora_train_bias,
         l0_module=l0_module,
-        # teacher_model=teacher_model,
         **data_module
     )
 

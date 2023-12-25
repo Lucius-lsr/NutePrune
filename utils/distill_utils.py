@@ -4,7 +4,7 @@ class IterativeDistillManager:
     def __init__(self):
         self.sparsity_interval = 0.01
         self.target = 0.5
-        self.teacher_ahead = 2
+        self.teacher_ahead = 10
 
         self.sparsity_to_record = [i*self.sparsity_interval for i in range(1, int(self.target/self.sparsity_interval))]
 

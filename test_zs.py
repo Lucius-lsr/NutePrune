@@ -56,7 +56,7 @@ def analyze(peft):
     MODEL_SIZE = 6476005376
     return (MODEL_SIZE-remaining_model_size)/MODEL_SIZE
 
-experiments = 'output/Compresso-pruning_only-s50.0-lr5e-05-reglr0.1-warmup1/2023-12-23-16-31'
+experiments = 'output/Compresso-pruning_only-s50.0-lr5e-05-reglr0.1-warmup1/uniform'
 checkpoints = os.listdir(experiments)
 for checkpoint in checkpoints:
     if checkpoint.startswith('epoch'):

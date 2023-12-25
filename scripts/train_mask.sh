@@ -6,7 +6,7 @@ export OUTPUT_DIR=output
 mkdir -p $OUTPUT_DIR
 
 python train.py \
-    --pruning_type structured_heads+structured_mlp+hidden \
+    --pruning_type structured_heads+structured_mlp\
     --target_sparsity 0.5 \
     --sparsity_epsilon 0.005 \
     --model_name_or_path baffo32/decapoda-research-llama-7B-hf \

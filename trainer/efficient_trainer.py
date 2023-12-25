@@ -383,9 +383,12 @@ class EfficientTrainer(Trainer):
                                     pass
 
                         # try:
-                        self.l0_module.eval()
-                        zs = self.l0_module.forward(training=False)
-                        pruned_model_size_info = self.l0_module.calculate_model_size(zs)
+                        if self.l0_module is not None:
+                            self.l0_module.eval()
+                            zs = self.l0_module.forward(training=False)
+                            pruned_model_size_info = self.l0_module.calculate_model_size(zs)
+                        else:
+                            pruned_model_size_info = {}
                         # except:
                         #     pruned_model_size_info = {}
 
@@ -403,9 +406,9 @@ class EfficientTrainer(Trainer):
                 if self.args.max_steps > 0 and self.global_step >= self.args.max_steps:
                     break
 
-                # # save on specific steps
-                # if self.global_step % 1330 == 0:
-                #     self.save_checkpoint(model, f"step_{self.global_step}")
+                # save on specific steps
+                if self.global_step % 500 == 0:
+                    self.save_checkpoint(model, f"step_{self.global_step}")
 
             epoch_end = time.time()
             torch.cuda.empty_cache()

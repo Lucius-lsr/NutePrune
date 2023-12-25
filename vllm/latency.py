@@ -138,6 +138,7 @@ if __name__ == '__main__':
         'output/Compresso-pruning-s50.0-lr5e-05-reglr0.1-warmup1/small_combined_distill_full_hidden/epoch4',
         'llm_pruner',
         'sheared',
+        'output/Compresso-pruning_only-s50.0-lr5e-05-reglr0.1-warmup1/uniform/epoch6',
     ]
 
     test_latency(pefts[-1])
