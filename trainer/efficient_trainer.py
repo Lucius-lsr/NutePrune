@@ -218,6 +218,8 @@ class EfficientTrainer(Trainer):
             logger.info(f"Lagrangian warmup steps: {lagrangian_warmup_steps}")
 
         self.t_total = max_steps
+        if self.additional_args.uniform:
+            self.l0_module.prepare_uniform_lambda()
         self.create_optimizer_and_scheduler(num_training_steps=self.t_total, build_l0_optimizer = self.start_prune)
             
         total_train_batch_size = (
@@ -366,8 +368,11 @@ class EfficientTrainer(Trainer):
                             lr = self.args.learning_rate
 
                         logs["learning_rate"] = lr
-                        logs["lambda_1"] = self.l0_module.lambda_1.item() if self.l0_module is not None else None
-                        logs["lambda_2"] = self.l0_module.lambda_2.item() if self.l0_module is not None else None
+                        logs["lambda_1"] = self.l0_module.lambda_1.mean().item() if self.l0_module is not None else None
+                        logs["lambda_2"] = self.l0_module.lambda_2.mean().item() if self.l0_module is not None else None
+                        if self.additional_args.uniform:
+                            logs["lambda_3"] = self.l0_module.lambda_3.mean().item() if self.l0_module is not None else None
+                            logs["lambda_4"] = self.l0_module.lambda_3.mean().item() if self.l0_module is not None else None
                         logs["expected_sparsity"] = loss_terms["expected_sparsity"]
                         logs["target_sparsity"] = loss_terms["target_sparsity"]
                         logging_loss_scalar = tr_loss_scalar

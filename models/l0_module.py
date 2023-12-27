@@ -105,8 +105,6 @@ class L0Module(Module):
 
         self.lambda_1 = torch.nn.Parameter(torch.tensor(0.0))
         self.lambda_2 = torch.nn.Parameter(torch.tensor(0.0))
-        self.lambda_3 = torch.nn.Parameter(torch.tensor(0.0))
-        self.lambda_4 = torch.nn.Parameter(torch.tensor(0.0))
 
         self.lagrangian_warmup = lagrangian_warmup
         self.start_sparsity = start_sparsity
@@ -435,6 +433,12 @@ class L0Module(Module):
                 + self.lambda_2 * (expected_sparsity - target_sparsity) ** 2 #! where is the lambda 1 and lambda 2 from
         )
         return lagrangian_loss, expected_sparsity, target_sparsity
+    
+    def prepare_uniform_lambda(self):
+        self.lambda_1 = torch.nn.Parameter(torch.zeros(self.num_hidden_layers))
+        self.lambda_2 = torch.nn.Parameter(torch.zeros(self.num_hidden_layers))
+        self.lambda_3 = torch.nn.Parameter(torch.zeros(self.num_hidden_layers))
+        self.lambda_4 = torch.nn.Parameter(torch.zeros(self.num_hidden_layers))
 
     def layerwise_lagrangian_regularization(self, pruned_steps):
         target_sparsity = self.target_sparsity
