@@ -634,7 +634,7 @@ class EfficientTrainer(Trainer):
         if self.start_prune :
             if self.additional_args.uniform:
                 lagrangian_loss, expected_sparsity, target_sparsity = self.l0_module.layerwise_lagrangian_regularization(
-                self.global_step - self.prepruning_finetune_steps)
+                self.global_step - self.prepruning_finetune_steps, self.t_total)
             else:
                 lagrangian_loss, expected_sparsity, target_sparsity = self.l0_module.lagrangian_regularization(
                 self.global_step - self.prepruning_finetune_steps)

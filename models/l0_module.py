@@ -440,7 +440,7 @@ class L0Module(Module):
         self.lambda_3 = torch.nn.Parameter(torch.zeros(self.num_hidden_layers))
         self.lambda_4 = torch.nn.Parameter(torch.zeros(self.num_hidden_layers))
 
-    def layerwise_lagrangian_regularization(self, pruned_steps):
+    def layerwise_lagrangian_regularization(self, pruned_steps, total_steps):
         target_sparsity = self.target_sparsity
         if self.lagrangian_warmup > 0:
             target_sparsity = self.get_target_sparsity(pruned_steps)
@@ -463,7 +463,7 @@ class L0Module(Module):
                 + self.lambda_4 * (expected_int - target_sparsity) ** 2
         )
 
-        alpha = 10
+        alpha = 1 + 10 * pruned_steps / total_steps
         lagrangian_loss = (lagrangian_loss_head.mean() + lagrangian_loss_int.mean())/2 * alpha
         expected_size = self.get_num_parameters_and_constraint()
         expected_sparsity = 1 - (expected_size + self.stable_model_size) / (self.prunable_model_size + self.stable_model_size)

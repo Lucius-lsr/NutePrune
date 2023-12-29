@@ -36,4 +36,9 @@ python train.py \
     --fp16 True \
     --random_init=False \
     --do_distill \
-    --uniform \
+    --do_layer_distill \
+    --uniform
+
+conda activate eval
+
+bash scripts/eval_commensense.sh
