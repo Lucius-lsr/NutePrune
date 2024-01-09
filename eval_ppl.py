@@ -66,7 +66,7 @@ def get_loaders(name, tokenizer, seq_len=2048, batch_size = 8):
     test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
     return train_data, test_loader
 
-def PPLMetric(model, zs, tokenizer, datasets, seq_len=128, batch_size = 4, device="cuda"):
+def PPLMetric(model, zs, tokenizer, datasets, seq_len=2048, batch_size = 4, device="cuda"):
     metric = {}
     for dataset in datasets:
         _, test_loader = get_loaders(dataset, tokenizer, seq_len=seq_len, batch_size = batch_size)
@@ -90,6 +90,8 @@ def llama_eval(model, zs, test_lodaer, device):
         batch = batch.to(device)
         if zs is not None:
             inputs = fill_inputs_with_zs(zs, batch)
+        else:
+            inputs = {"input_ids": batch}
         output = model(**inputs)
         lm_logits = output.logits
     
@@ -102,13 +104,13 @@ def llama_eval(model, zs, test_lodaer, device):
     ppl = np.exp(torch.cat(nlls, dim=-1).mean().item())
     return ppl.item()
 
-def set_lora_args(config, modeling_args):
-    config.use_lora = modeling_args.use_lora
-    config.lora_rank = modeling_args.lora_rank
-    config.lora_train_bias = modeling_args.lora_train_bias
-    config.lora_alpha = modeling_args.lora_alpha
-    config.lora_param = modeling_args.lora_param
-    config.lora_layers = modeling_args.lora_layers
+def set_lora_args(config, lora_param):
+    config.use_lora = True
+    config.lora_rank = 8
+    config.lora_train_bias = None
+    config.lora_alpha = 8.0
+    config.lora_param = lora_param
+    config.lora_layers = config.num_hidden_layers
     return config
 
 
@@ -127,34 +129,32 @@ def main():
     # model initialize
     config = LlamaConfig.from_pretrained(
         model_args.config_name if model_args.config_name else model_args.model_name_or_path,
-        #num_labels=num_labels,
-        #finetuning_task=data_args.task_name,
-        cache_dir=model_args.cache_dir,
-        revision=model_args.model_revision,
     )
     config.use_cache = False
     lora_ckpt = None
-    config = set_lora_args(config, model_args)
+    if additional_args.pretrained_pruned_model is not None:
+        config = set_lora_args(config, model_args.lora_param)
+        peft = additional_args.pretrained_pruned_model
+        lora_ckpt = os.path.join(peft, 'lora_weights.pt')
+        if not os.path.exists(lora_ckpt):
+            print('No lora module found, ignored!')
+            lora_ckpt = None
+            config.lora_param = ''
+    # lora_ckpt = None  # no lora
     tokenizer = LlamaTokenizer.from_pretrained(
         model_args.tokenizer_name if model_args.tokenizer_name else model_args.model_name_or_path,
-        cache_dir=model_args.cache_dir,
-        use_fast=model_args.use_fast_tokenizer,
-        revision=model_args.model_revision,
         padding_side="left",
         truncation_side="left",
-        model_max_length=512,
     )
     model = LlamaForCausalLM.from_pretrained(
         LlamaForCausalLM,
         model_args.model_name_or_path,
-        from_tf=bool(".ckpt" in model_args.model_name_or_path),
+        from_tf=False,
         config=config,
-        cache_dir=model_args.cache_dir,
-        revision=model_args.model_revision,
-        ignore_mismatched_sizes=model_args.ignore_mismatched_sizes,
         lora_ckpt = lora_ckpt
     )
-    model.half()  # accelerate
+    model.half()
+    model.eval()
 
     zs = None
     if additional_args.pretrained_pruned_model is not None:

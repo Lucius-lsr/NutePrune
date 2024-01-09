@@ -1,4 +1,5 @@
 import copy
+import utils.lora_utils as lora
 
 class IterativeDistillManager:
     def __init__(self):
@@ -13,7 +14,7 @@ class IterativeDistillManager:
         self.reach_target = False
         self.iter_steps = -1
 
-    def update(self, sparsity, l0_module, remain_steps):
+    def update(self, sparsity, l0_module, remain_steps, model=None):
         if self.reach_target:
             return
         if self.cur_to_record == len(self.sparsity_to_record):
@@ -26,9 +27,17 @@ class IterativeDistillManager:
             print()
             print('record zs at sparsity {}.'.format(target))
             print()
+            lora_weights = None
+            if model is not None:
+                lora_weights = {}
+                for n, m in model.named_parameters():
+                    if 'lora_' in n:
+                        gather = lora.should_gather(m)
+                        with gather:
+                            lora_weights[n.replace('module.','')] = m.data.detach().clone()
             zs = l0_module.forward(training=False)
             self.recorded_zs.append(
-                {key:copy.deepcopy(zs[key].detach()) for key in zs.keys()}
+                ({key:copy.deepcopy(zs[key].detach()) for key in zs.keys()}, lora_weights)
             )
             self.cur_to_record += 1
             

@@ -37,8 +37,5 @@ python train.py \
     --random_init=False \
     --do_distill \
     --do_layer_distill \
+    --do_iterative_distill \
     --uniform
-
-conda activate eval
-
-bash scripts/eval_commensense.sh

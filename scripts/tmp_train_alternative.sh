@@ -5,17 +5,17 @@ export TQDM_DISABLED=true
 export OUTPUT_DIR=output
 mkdir -p $OUTPUT_DIR
 
-python train.py \
+python tmp_train.py \
     --pruning_type structured_heads+structured_mlp+hidden\
-    --target_sparsity 0.2 \
+    --target_sparsity 0.5 \
     --sparsity_epsilon 0.005 \
     --model_name_or_path baffo32/decapoda-research-llama-7B-hf \
     --num_train_epochs 7 \
-    --learning_rate 5e-5 \
-    --reg_learning_rate 0.1 \
+    --learning_rate 5e-6 \
+    --reg_learning_rate 0.2 \
     --lagrangian_warmup_epochs 1 \
     --max_seq_length 512 \
-    --task_name pruning_only \
+    --task_name alternative \
     --do_train \
     --do_eval \
     --dataset_name c4 \
@@ -35,5 +35,12 @@ python train.py \
     --disable_tqdm False \
     --fp16 True \
     --random_init=False \
+    --use_lora True \
+    --lora_rank 8 \
+    --lora_train_bias none \
+    --lora_alpha 8.0 \
+    --lora_param Q.V \
+    --lora_layers 32 \
     --do_distill \
     --do_layer_distill \
+    --do_iterative_distill \
