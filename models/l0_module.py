@@ -463,7 +463,8 @@ class L0Module(Module):
                 + self.lambda_4 * (expected_int - target_sparsity) ** 2
         )
 
-        alpha = 1 + 10 * pruned_steps / total_steps
+        # alpha = 1 + 10 * pruned_steps / total_steps
+        alpha = 1
         lagrangian_loss = (lagrangian_loss_head.mean() + lagrangian_loss_int.mean())/2 * alpha
         expected_size = self.get_num_parameters_and_constraint()
         expected_sparsity = 1 - (expected_size + self.stable_model_size) / (self.prunable_model_size + self.stable_model_size)

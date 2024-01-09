@@ -43,3 +43,4 @@ python train.py \
     --disable_tqdm False \
     --fp16 True \
     --random_init=False \
+    --gradient_accumulation_steps 8 \

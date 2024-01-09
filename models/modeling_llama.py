@@ -1757,7 +1757,6 @@ class LlamaForCausalLM(LlamaPreTrainedModel):
         hidden_z = None,
         block_layer_start=None,
         block_layer_end=None,
-        is_teacher=False,
     ) -> Union[Tuple, CausalLMOutputWithPast]:
         r"""
         Args:
@@ -1784,15 +1783,6 @@ class LlamaForCausalLM(LlamaPreTrainedModel):
         >>> tokenizer.batch_decode(generate_ids, skip_special_tokens=True, clean_up_tokenization_spaces=False)[0]
         "Hey, are you consciours? Can you talk to me?\nI'm not consciours, but I can talk to you."
         ```"""
-
-        def recursive_modify(module, f, target):
-            for m in module.children():
-                recursive_modify(m, f, target)
-                if isinstance(m, target):
-                    f(m)
-        if self.teacher_status != is_teacher:
-            self.teacher_status = is_teacher
-            recursive_modify(self.model, lambda m: m.set_teacher(is_teacher), lora.Linear)
 
         output_attentions = output_attentions if output_attentions is not None else self.config.output_attentions
         output_hidden_states = (

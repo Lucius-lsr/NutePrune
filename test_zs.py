@@ -34,7 +34,11 @@ def analyze(peft):
     MODEL_SIZE = 6476005376
     return (MODEL_SIZE-remaining_model_size)/MODEL_SIZE
 
+<<<<<<< HEAD
 experiments = 'output/Compresso-pruning_only-s50.0-lr5e-05-reglr0.1-warmup1/layerdis_uniform_warmalpha'
+=======
+experiments = 'output/Compresso-alternative-s50.0-lr5e-06-reglr0.2-warmup1/iter_layerdis_alter_50_50'
+>>>>>>> fc726e80f69d6b0a4b82bd34432ed05e8c07301f
 checkpoints = os.listdir(experiments)
 checkpoints = sorted(checkpoints)
 for checkpoint in checkpoints:
@@ -42,4 +46,4 @@ for checkpoint in checkpoints:
         peft = os.path.join(experiments, checkpoint)
         print(checkpoint, analyze(peft))
 
-# print(analyze('output/Compresso-pruning-s50.0-lr5e-05-reglr0.1-warmup1/small_combined_layerdistill_16bs/epoch2'))
+# print(analyze('output/Compresso-pruning_only-s50.0-lr5e-05-reglr0.1-warmup1/iter_layerdis_uniform_warmalpha/epoch6'))
