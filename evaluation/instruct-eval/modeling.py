@@ -234,6 +234,7 @@ class CausalModel(SeqToSeqModel):
 
 class LlamaModel(SeqToSeqModel):
     use_template: bool = False
+    zs: Optional[dict] = None
     """
     Not officially supported by AutoModelForCausalLM, so we need the specific class
     Optionally, we can use the prompt template from: https://github.com/tatsu-lab/stanford_alpaca/blob/main/train.py
@@ -241,21 +242,72 @@ class LlamaModel(SeqToSeqModel):
     """
 
     def load(self):
-        if self.tokenizer is None:
-            self.tokenizer = LlamaTokenizer.from_pretrained(self.model_path)
-        elif isinstance(self.tokenizer, str):
-            self.tokenizer = LlamaTokenizer.from_pretrained(self.tokenizer)
+        import os
+        from models.modeling_llama import LlamaForCausalLM
+        from utils.compresso_utils import load_zs
+        from models.modeling_llama import LlamaConfig
+        from models.tokenization_llama import LlamaTokenizer
+
+        # if self.tokenizer is None:
+        #     self.tokenizer = LlamaTokenizer.from_pretrained(self.model_path)
+        # elif isinstance(self.tokenizer, str):
+        #     self.tokenizer = LlamaTokenizer.from_pretrained(self.tokenizer)
         if self.model is None:
             args = {}
-            if self.load_8bit:
-                args.update(device_map="auto", load_in_8bit=True)
-            self.model = LlamaForCausalLM.from_pretrained(self.model_path, **args)
-            if self.lora_path:
-                self.model = PeftModel.from_pretrained(self.model, self.lora_path)
-            self.model.eval()
+            # if self.load_8bit:
+            #     args.update(device_map="auto", load_in_8bit=True)
+            # self.model = LlamaForCausalLM.from_pretrained(self.model_path, **args)
+            # if self.lora_path:
+            #     self.model = PeftModel.from_pretrained(self.model, self.lora_path)
+            # self.model.eval()
+            # self.model.half()
+            # if not self.load_8bit:
+            #     self.model.to(self.device)
+                # model initialize
+            def set_lora_args(config, lora_param):
+                config.use_lora = True
+                config.lora_rank = 8
+                config.lora_train_bias = None
+                config.lora_alpha = 8.0
+                config.lora_param = lora_param
+                config.lora_layers = config.num_hidden_layers
+                return config
+            config = LlamaConfig.from_pretrained(
+                self.model_path,
+            )
+            config.use_cache = False
+            lora_ckpt = None
+            pretrained_pruned_model = 'output/Compresso-finetune-s0-lr1e-05-reglr0.1-warmup0/compresso_20/epoch2'
+
+            if pretrained_pruned_model is not None:
+                config = set_lora_args(config, 'Q.V')
+                peft = pretrained_pruned_model
+                lora_ckpt = os.path.join(peft, 'lora_weights.pt')
+                if not os.path.exists(lora_ckpt):
+                    print('No lora module found, ignored!')
+                    lora_ckpt = None
+                    config.lora_param = ''
+            # lora_ckpt = None  # no lora
+            self.tokenizer = LlamaTokenizer.from_pretrained(
+                self.model_path,
+                padding_side="left",
+                truncation_side="left",
+            )
+            self.model = LlamaForCausalLM.from_pretrained(
+                LlamaForCausalLM,
+                self.model_path,
+                from_tf=False,
+                config=config,
+                lora_ckpt = lora_ckpt
+            )
             self.model.half()
-            if not self.load_8bit:
-                self.model.to(self.device)
+            self.model.eval()
+            self.model.to(self.device)
+
+            if pretrained_pruned_model is not None:
+                self.zs = load_zs(os.path.join(pretrained_pruned_model, 'zs.pt'))
+                for key in self.zs:
+                    self.zs[key] = self.zs[key].detach().to(self.device)
 
     def run(self, prompt: str, **kwargs) -> str:
         if self.use_template:
@@ -279,17 +331,41 @@ class LlamaModel(SeqToSeqModel):
                 max_length=self.max_input_length,
             ).to(self.device)
 
+        if self.zs is not None:
+            inputs["zs"] = self.zs
+
+        from transformers import GenerationConfig
+        class GenerationConfig_my(GenerationConfig): 
+            def validate(self):
+                if self.early_stopping not in {True, False, "never"}:
+                    raise ValueError(f"`early_stopping` must be a boolean or 'never', but is {self.early_stopping}.")
+
+            def update(self, **kwargs):
+                to_remove = []
+                for key, value in kwargs.items():
+                    if hasattr(self, key):
+                        setattr(self, key, value)
+                        to_remove.append(key)
+
+                # remove all the attributes that were updated, without modifying the input dict
+                unused_kwargs = {key: value for key, value in kwargs.items() if key not in to_remove}
+                return unused_kwargs
+        generation_config = GenerationConfig_my()
         outputs = self.model.generate(
             **inputs,
             max_new_tokens=self.max_output_length,
+            generation_config=generation_config,
             **kwargs,
         )
         batch_size, length = inputs.input_ids.shape
+        outputs = outputs.sequences
         return self.tokenizer.decode(outputs[0, length:], skip_special_tokens=True)
 
     def get_choice(self, text: str, **kwargs) -> Tuple[float, float]:
         self.load()
         inputs = self.tokenizer(text, return_tensors="pt").to(self.device)
+        if self.zs is not None:
+            inputs["zs"] = self.zs
         with torch.no_grad():
             predictions = self.model(
                 **inputs,

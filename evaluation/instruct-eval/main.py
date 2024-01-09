@@ -1,20 +1,20 @@
 from fire import Fire
 
-import bbh
-import crass
-import drop
+# import bbh
+# import crass
+# import drop
 import mmlu
-from human_eval.main import main as humaneval
+# from human_eval.main import main as humaneval
 from lm_eval import evaluator
 
 
 def main(task_name: str, **kwargs):
     task_map = dict(
         mmlu=mmlu.main,
-        bbh=bbh.main,
-        drop=drop.main,
-        humaneval=humaneval,
-        crass=crass.main,
+        # bbh=bbh.main,
+        # drop=drop.main,
+        # humaneval=humaneval,
+        # crass=crass.main,
     )
 
     if task_name == "all":
@@ -31,10 +31,11 @@ def main(task_name: str, **kwargs):
         results = {task_name: score}
     else:
         print("Using lm-eval")
-        model_name = kwargs.pop("model_name")
+        model = kwargs.pop("model")
+        model_args = kwargs.pop("model_args", None)
         results = evaluator.simple_evaluate(
-            model="hf" if model_name in ["causal", "seq_to_seq"] else "llama",
-            model_args=f"pretrained={kwargs.pop('model_path')},tokenizer={kwargs.pop('tokenizer')}",
+            model=model,
+            model_args=model_args,
             tasks=[task_name],
             num_fewshot=kwargs.get("ntrain", 0),
             batch_size=1,

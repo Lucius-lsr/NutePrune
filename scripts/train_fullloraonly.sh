@@ -6,8 +6,7 @@ export OUTPUT_DIR=output
 mkdir -p $OUTPUT_DIR
 
 # baseline_pruned_model=output/Compresso-pruning_only-s50.0-lr5e-05-reglr0.1-warmup1/layerdis_iter_dense_dual_7/epoch6
-# baseline_pruned_model=output/Compresso-pruning_only-s20.0-lr5e-05-reglr0.1-warmup1/iter_layerdis/epoch6
-baseline_pruned_model=output/Compresso-pruning-s20.0-lr5e-05-reglr0.1-warmup1/compresso_20/epoch4
+baseline_pruned_model=output/Compresso-pruning_only-s20.0-lr5e-05-reglr0.1-warmup1/iter_layerdis/epoch6
 
 python train.py \
     --pruning_type None \
@@ -33,8 +32,8 @@ python train.py \
     --use_lora True \
     --lora_rank 8 \
     --lora_train_bias none \
-    --lora_alpha 8.0 \
-    --lora_param Q.V \
+    --lora_alpha 16.0 \
+    --lora_param Q.K.V.O.F \
     --lora_layers 32 \
     --gradient_checkpointing=True \
     --gradient_accumulation_steps 4 \

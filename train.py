@@ -113,9 +113,13 @@ def main():
         config = set_lora_args(config, model_args)
         if additional_args.do_layer_distill:
             config.output_hidden_states = True
-        # if additional_args.pretrained_pruned_model is not None:
-        #     lora_ckpt = os.path.join(additional_args.pretrained_pruned_model, 'lora_weights.pt')
-        #     logger.info(f"Load lora ckpt from {lora_ckpt}")
+        if additional_args.pretrained_pruned_model is not None:
+            lora_ckpt = os.path.join(additional_args.pretrained_pruned_model, 'lora_weights.pt')
+            if os.path.exists(lora_ckpt):
+                logger.info(f"Load lora ckpt from {lora_ckpt}")
+            else:
+                lora_ckpt = None
+                logger.info(f"No lora ckpt found")
         tokenizer = LlamaTokenizer.from_pretrained(
             model_args.tokenizer_name if model_args.tokenizer_name else model_args.model_name_or_path,
             cache_dir=model_args.cache_dir,

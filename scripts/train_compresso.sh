@@ -6,21 +6,22 @@ export OUTPUT_DIR=output
 mkdir -p $OUTPUT_DIR
 
 python train.py \
-    --pruning_type structured_heads+structured_mlp+hidden\
+    --pruning_type structured_heads+structured_mlp+hidden \
     --target_sparsity 0.2 \
     --sparsity_epsilon 0.005 \
     --model_name_or_path baffo32/decapoda-research-llama-7B-hf \
-    --num_train_epochs 7 \
-    --learning_rate 5e-5 \
+    --num_train_epochs 5 \
+    --learning_rate 1e-5 \
     --reg_learning_rate 0.1 \
     --lagrangian_warmup_epochs 1 \
     --max_seq_length 512 \
-    --task_name pruning_only \
+    --task_name pruning \
     --do_train \
     --do_eval \
-    --dataset_name c4 \
+    --dataset_name alpaca \
+    --overwrite_cache \
     --eval_dataset_name wikitext \
-    --train_file ./data/alpaca_gpt4_data.json \
+    --train_file ./data/alpaca_data_cleaned.json \
     --droprate_init 0.01 \
     --per_device_train_batch_size 16 \
     --per_device_eval_batch_size 16 \
@@ -28,13 +29,15 @@ python train.py \
     --overwrite_output_dir \
     --output_dir $OUTPUT_DIR/ \
     --cache_dir /dev/shm \
-    --use_lora False \
+    --use_lora True \
+    --lora_rank 8 \
+    --lora_train_bias none \
+    --lora_alpha 8.0 \
+    --lora_param Q.V \
+    --lora_layers 32 \
     --gradient_checkpointing=True \
     --logging_first_step \
     --logging_steps 10 \
     --disable_tqdm False \
-    --fp16 True \
+    --fp16 false \
     --random_init=False \
-    --do_distill \
-    --do_iterative_distill \
-    --do_layer_distill \

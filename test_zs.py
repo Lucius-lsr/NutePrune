@@ -34,7 +34,7 @@ def analyze(peft):
     MODEL_SIZE = 6476005376
     return (MODEL_SIZE-remaining_model_size)/MODEL_SIZE
 
-experiments = 'output/Compresso-pruning_only-s50.0-lr5e-05-reglr0.1-warmup1/iter_layerdis_uniform_lambda10'
+experiments = 'output/Compresso-pruning_only-s50.0-lr5e-05-reglr0.1-warmup1/layerdis_uniform_warmalpha'
 checkpoints = os.listdir(experiments)
 checkpoints = sorted(checkpoints)
 for checkpoint in checkpoints:

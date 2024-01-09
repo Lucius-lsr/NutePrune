@@ -194,7 +194,7 @@ def evaluate(args, subject, model: EvalModel, dev_df, test_df, prompt_mark="0"):
     return cors, acc, all_probs
 
 
-def main(data_dir: str = "data/mmlu", ntrain: int = 5, prompt_mark="0", **kwargs):
+def main(data_dir: str = "evaluation/instruct-eval/data/mmlu", ntrain: int = 5, prompt_mark="0", **kwargs):
     print("prompt_mark", prompt_mark)
     args = Namespace(**locals())
     model = select_model(max_input_length=2048, max_output_length=2, **kwargs)
