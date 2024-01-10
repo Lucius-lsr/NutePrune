@@ -4,28 +4,28 @@ import time
 from pathlib import Path
 from typing import Optional, Tuple
 
-import openai
-import rwkv
-import tiktoken
+# import openai
+# import rwkv
+# import tiktoken
 import torch
 import torch.nn as nn
 import transformers
 from fire import Fire
-from peft import PeftModel
+# from peft import PeftModel
 from pydantic import BaseModel
-from rwkv.model import RWKV
-from rwkv.utils import PIPELINE
-from torchvision.datasets.utils import download_url
+# from rwkv.model import RWKV
+# from rwkv.utils import PIPELINE
+# from torchvision.datasets.utils import download_url
 from transformers import AutoTokenizer
 from transformers import (
     PreTrainedModel,
     PreTrainedTokenizer,
     AutoModelForSeq2SeqLM,
     AutoModelForCausalLM,
-    LlamaForCausalLM,
-    LlamaTokenizer,
+    # LlamaForCausalLM,
+    # LlamaTokenizer,
     AutoModel,
-    LlamaConfig,
+    # LlamaConfig,
 )
 
 import quant
@@ -46,85 +46,85 @@ class EvalModel(BaseModel, arbitrary_types_allowed=True):
         return self.count_text_length(text) <= self.max_input_length
 
 
-class OpenAIModel(EvalModel):
-    model_path: str
-    engine: str = ""
-    use_azure: bool = False
-    tokenizer: Optional[tiktoken.Encoding]
-    api_endpoint: str = "https://research.openai.azure.com/"
-    api_version: str = "2023-03-15-preview"
-    timeout: int = 60
-    temperature: float = 0.0
+# class OpenAIModel(EvalModel):
+#     model_path: str
+#     engine: str = ""
+#     use_azure: bool = False
+#     tokenizer: Optional[tiktoken.Encoding]
+#     api_endpoint: str = "https://research.openai.azure.com/"
+#     api_version: str = "2023-03-15-preview"
+#     timeout: int = 60
+#     temperature: float = 0.0
 
-    def load(self):
-        if self.tokenizer is None:
-            self.tokenizer = tiktoken.get_encoding("cl100k_base")  # chatgpt/gpt-4
+#     def load(self):
+#         if self.tokenizer is None:
+#             self.tokenizer = tiktoken.get_encoding("cl100k_base")  # chatgpt/gpt-4
 
-        with open(self.model_path) as f:
-            info = json.load(f)
-            openai.api_key = info["key"]
-            self.engine = info["engine"]
+#         with open(self.model_path) as f:
+#             info = json.load(f)
+#             openai.api_key = info["key"]
+#             self.engine = info["engine"]
 
-        if self.use_azure:
-            openai.api_type = "azure"
-            openai.api_base = self.api_endpoint
-            openai.api_version = self.api_version
+#         if self.use_azure:
+#             openai.api_type = "azure"
+#             openai.api_base = self.api_endpoint
+#             openai.api_version = self.api_version
 
-    def run(self, prompt: str, **kwargs) -> str:
-        self.load()
-        output = ""
-        error_message = "The response was filtered"
+#     def run(self, prompt: str, **kwargs) -> str:
+#         self.load()
+#         output = ""
+#         error_message = "The response was filtered"
 
-        while not output:
-            try:
-                key = "engine" if self.use_azure else "model"
-                kwargs = {key: self.engine}
-                response = openai.ChatCompletion.create(
-                    messages=[{"role": "user", "content": prompt}],
-                    timeout=self.timeout,
-                    request_timeout=self.timeout,
-                    temperature=0,  # this is the degree of randomness of the model's output
-                    **kwargs,
-                )
-                if response.choices[0].finish_reason == "content_filter":
-                    raise ValueError(error_message)
-                output = response.choices[0].message.content
-            except Exception as e:
-                print(e)
-                if error_message in str(e):
-                    output = error_message
+#         while not output:
+#             try:
+#                 key = "engine" if self.use_azure else "model"
+#                 kwargs = {key: self.engine}
+#                 response = openai.ChatCompletion.create(
+#                     messages=[{"role": "user", "content": prompt}],
+#                     timeout=self.timeout,
+#                     request_timeout=self.timeout,
+#                     temperature=0,  # this is the degree of randomness of the model's output
+#                     **kwargs,
+#                 )
+#                 if response.choices[0].finish_reason == "content_filter":
+#                     raise ValueError(error_message)
+#                 output = response.choices[0].message.content
+#             except Exception as e:
+#                 print(e)
+#                 if error_message in str(e):
+#                     output = error_message
 
-            if not output:
-                print("OpenAIModel request failed, retrying.")
+#             if not output:
+#                 print("OpenAIModel request failed, retrying.")
 
-        return output
+#         return output
 
-    def count_text_length(self, text: str) -> int:
-        self.load()
-        return len(self.tokenizer.encode(text))
+#     def count_text_length(self, text: str) -> int:
+#         self.load()
+#         return len(self.tokenizer.encode(text))
 
-    def get_choice(self, prompt: str, **kwargs) -> str:
-        self.load()
+#     def get_choice(self, prompt: str, **kwargs) -> str:
+#         self.load()
 
-        def handler(signum, frame):
-            raise Exception("Timeout")
+#         def handler(signum, frame):
+#             raise Exception("Timeout")
 
-        signal.signal(signal.SIGALRM, handler)
+#         signal.signal(signal.SIGALRM, handler)
 
-        for i in range(3):  # try 5 times
-            signal.alarm(2)  # 5 seconds
-            try:
-                response = openai.ChatCompletion.create(
-                    engine=self.model_path,
-                    messages=[{"role": "user", "content": prompt}],
-                )
-                return response.choices[0].message.content
-            except Exception as e:
-                if "content management policy" in str(e):
-                    break
-                else:
-                    time.sleep(3)
-        return "Z"
+#         for i in range(3):  # try 5 times
+#             signal.alarm(2)  # 5 seconds
+#             try:
+#                 response = openai.ChatCompletion.create(
+#                     engine=self.model_path,
+#                     messages=[{"role": "user", "content": prompt}],
+#                 )
+#                 return response.choices[0].message.content
+#             except Exception as e:
+#                 if "content management policy" in str(e):
+#                     break
+#                 else:
+#                     time.sleep(3)
+#         return "Z"
 
 
 class SeqToSeqModel(EvalModel):
@@ -277,7 +277,7 @@ class LlamaModel(SeqToSeqModel):
             )
             config.use_cache = False
             lora_ckpt = None
-            pretrained_pruned_model = 'output/Compresso-finetune-s0-lr1e-05-reglr0.1-warmup0/compresso_20/epoch2'
+            pretrained_pruned_model = 'output/Compresso-alternative-s50.0-lr5e-06-reglr0.2-warmup1/iter_layerdis_alter_50_50'
 
             if pretrained_pruned_model is not None:
                 config = set_lora_args(config, 'Q.V')

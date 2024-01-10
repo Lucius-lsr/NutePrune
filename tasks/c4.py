@@ -18,7 +18,7 @@ def get_c4_data_module(tokenizer, model_args, data_args, training_args):
     #load samples from c4 dataset
     # raw_datasets = load_from_disk(data_args.train_file)
     raw_datasets = load_dataset(
-        'allenai/c4', 'allenai--c4', data_files={'train': 'en/c4-train.00000-of-01024.json.gz'}, split='train'
+        'allenai/c4', 'allenai--c4', data_files={'train': 'en/c4-train.00000-of-01024.json.gz'}, split='train', revision='607bd4c8450a42878aa9ddc051a65a055450ef87'
     )
     print('data count: ', raw_datasets.num_rows)
     raw_datasets = raw_datasets.select(range(20000))

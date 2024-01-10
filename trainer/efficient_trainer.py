@@ -598,22 +598,41 @@ class EfficientTrainer(Trainer):
         distill_loss = None
         distill_ce_loss = None
         if distill:
+            # ----------step 1: backup student lora weights----------
+            student_lora_weights = {}
+            for n, m in model.named_parameters():
+                if 'lora_' in n:
+                    student_lora_weights[n.replace('module.','')] = m.data.detach().clone()
+            # ----------step 2: get teacher model and get teacher output----------
             with torch.no_grad():
-                # self.teacher_model.eval()
                 model.eval()
-                # only retain inputs of certain keys
                 teacher_inputs_keys = ["input_ids", "attention_mask", "token_type_ids", "position_ids", "labels",
                                        "output_attentions", "output_hidden_states", "return_dict"]
                 teacher_inputs = {key: inputs[key]
                                   for key in teacher_inputs_keys if key in inputs}
                 self.shortens_inputs(teacher_inputs)
-                teacher_inputs['is_teacher'] = True
+                teacher_zs, teacher_lora = None, None
                 if self.additional_args.do_iterative_distill:
-                    teacher_zs = self.iter_manager.check_use_iterative_distill(self.t_total - self.global_step)
+                    teacher_zs_teacher_lora = self.iter_manager.check_use_iterative_distill(self.t_total - self.global_step)
+                    if teacher_zs_teacher_lora is not None:
+                        teacher_zs, teacher_lora = teacher_zs_teacher_lora
                     if teacher_zs is not None:
                         self.fill_inputs_with_zs(teacher_zs, teacher_inputs)
+                # update model by teacher lora_weights
+                if teacher_lora is not None:
+                    for n, m in model.named_parameters():
+                        if 'lora_' in n:
+                            m.data = teacher_lora[n.replace('module.','')].clone().to(m.device)
+                else:
+                    for n, m in model.named_parameters():
+                        if 'lora_' in n:
+                            m.data *= 0
                 teacher_outputs = model(**teacher_inputs)
-                # teacher_outputs = self.teacher_model(**teacher_inputs)
+
+            # ----------step 3: restore model to student----------
+            for n, m in model.named_parameters():
+                if 'lora_' in n:
+                    m.data = student_lora_weights[n.replace('module.','')].to(m.device)
             model.train()
             self.shortens_inputs(inputs)
             student_outputs = model(**inputs) #! get the two outputs
