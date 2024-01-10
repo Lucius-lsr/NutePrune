@@ -2,7 +2,7 @@ import torch
 import os
 import numpy as np
 
-lora = torch.load('output/Compresso-pruning-s50.0-lr3e-05-reglr0.1-warmup0/2023-12-20-9-11/step_1330/lora_weights.pt', map_location="cpu")
+lora = torch.load('output/Compresso-alternative-s50.0-lr5e-06-reglr0.2-warmup1/2024-1-10-3-4/epoch0/lora_weights.pt', map_location="cpu")
 
 for k in lora.keys():
     print(k, lora[k].mean())
