@@ -24,13 +24,13 @@ from datasets import load_dataset
 from torch.utils.data.dataset import Dataset
 
 def get_wikitext2(seq_len, tokenizer):
-    traindata = load_dataset('wikitext', 'wikitext-2-raw-v1', split='train', ignore_verifications=True)
-    testdata = load_dataset('wikitext', 'wikitext-2-raw-v1', split='test', ignore_verifications=True)
+    traindata = load_dataset('wikitext', 'wikitext-2-raw-v1', split='train', revision='f5562967961a45407fa15044c5535a607200983f')
+    testdata = load_dataset('wikitext', 'wikitext-2-raw-v1', split='test', revision='f5562967961a45407fa15044c5535a607200983f')
     return traindata, testdata
 
 def get_ptb(seq_len, tokenizer):
-    traindata = load_dataset('ptb_text_only', 'penn_treebank', split='train', ignore_verifications=True)
-    valdata = load_dataset('ptb_text_only', 'penn_treebank', split='validation', ignore_verifications=True)
+    traindata = load_dataset('ptb_text_only', 'penn_treebank', split='train')
+    valdata = load_dataset('ptb_text_only', 'penn_treebank', split='validation')
     return traindata, valdata
 
 class IndexDataset(Dataset):

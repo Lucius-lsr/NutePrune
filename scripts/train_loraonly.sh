@@ -7,7 +7,7 @@ mkdir -p $OUTPUT_DIR
 
 # baseline_pruned_model=output/Compresso-pruning_only-s50.0-lr5e-05-reglr0.1-warmup1/layerdis_iter_dense_dual_7/epoch6
 # baseline_pruned_model=output/Compresso-pruning_only-s20.0-lr5e-05-reglr0.1-warmup1/iter_layerdis/epoch6
-baseline_pruned_model=output/Compresso-pruning-s20.0-lr5e-05-reglr0.1-warmup1/compresso_20/epoch4
+baseline_pruned_model=output/Compresso-pruning-s20.0-lr1e-05-reglr0.1-warmup1/compresso_20/epoch4
 
 python train.py \
     --pruning_type None \
