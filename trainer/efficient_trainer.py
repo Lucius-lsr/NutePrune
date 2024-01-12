@@ -37,6 +37,7 @@ import mlflow
 import torch.nn as nn
 from transformers.trainer_pt_utils import nested_detach
 from transformers.utils import is_sagemaker_mp_enabled
+import copy
 mlflow.autolog()
 
 logger = logging.get_logger(__name__)
@@ -602,7 +603,7 @@ class EfficientTrainer(Trainer):
             student_lora_weights = {}
             for n, m in model.named_parameters():
                 if 'lora_' in n:
-                    student_lora_weights[n.replace('module.','')] = m.data.detach().clone()
+                    student_lora_weights[n.replace('module.','')] = copy.deepcopy(m.data.detach())
             # ----------step 2: get teacher model and get teacher output----------
             with torch.no_grad():
                 model.eval()
@@ -622,7 +623,7 @@ class EfficientTrainer(Trainer):
                 if teacher_lora is not None:
                     for n, m in model.named_parameters():
                         if 'lora_' in n:
-                            m.data = teacher_lora[n.replace('module.','')].clone().to(m.device)
+                            m.data = copy.deepcopy(teacher_lora[n.replace('module.','')]).to(m.device)
                 else:
                     for n, m in model.named_parameters():
                         if 'lora_' in n:
@@ -632,7 +633,7 @@ class EfficientTrainer(Trainer):
             # ----------step 3: restore model to student----------
             for n, m in model.named_parameters():
                 if 'lora_' in n:
-                    m.data = student_lora_weights[n.replace('module.','')].to(m.device)
+                    m.data = copy.deepcopy(student_lora_weights[n.replace('module.','')]).to(m.device)
             model.train()
             self.shortens_inputs(inputs)
             student_outputs = model(**inputs) #! get the two outputs
@@ -659,7 +660,7 @@ class EfficientTrainer(Trainer):
                 self.global_step - self.prepruning_finetune_steps)
             loss += lagrangian_loss
             if self.additional_args.do_iterative_distill:
-                self.iter_manager.update(expected_sparsity.item(), self.l0_module, self.t_total - self.global_step)
+                self.iter_manager.update(expected_sparsity.item(), self.l0_module, self.t_total - self.global_step, model if self.use_lora else None)
         if self.args.n_gpu > 1:
             loss = loss.mean()  # mean() to average on multi-gpu parallel training
         if self.args.gradient_accumulation_steps > 1 and not self.deepspeed:
