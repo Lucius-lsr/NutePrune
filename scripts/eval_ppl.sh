@@ -1,8 +1,8 @@
-for e in epoch0 epoch1 epoch2
+for e in epoch4 epoch5 epoch6
 do
 python eval_ppl.py \
     --model_name_or_path baffo32/decapoda-research-llama-7B-hf \
     --output_dir output/ \
-    --pretrained_pruned_model output/Compresso-finetune-s0-lr1e-05-reglr0.1-warmup0/compresso_20/$e \
+    --pretrained_pruned_model output/Compresso-alternative-s50.0-lr5e-06-reglr0.2-warmup1/iter_layerdis_alter_50_50/$e \
     --lora_param Q.V
 done
