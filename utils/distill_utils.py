@@ -32,9 +32,7 @@ class IterativeDistillManager:
                 lora_weights = {}
                 for n, m in model.named_parameters():
                     if 'lora_' in n:
-                        gather = lora.should_gather(m)
-                        with gather:
-                            lora_weights[n.replace('module.','')] = m.data.detach().clone()
+                        lora_weights[n.replace('module.','')] = copy.deepcopy(m.data.detach())
             zs = l0_module.forward(training=False)
             self.recorded_zs.append(
                 ({key:copy.deepcopy(zs[key].detach()) for key in zs.keys()}, lora_weights)

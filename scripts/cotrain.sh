@@ -11,8 +11,8 @@ python train.py \
     --sparsity_epsilon 0.005 \
     --model_name_or_path baffo32/decapoda-research-llama-7B-hf \
     --num_train_epochs 7 \
-    --learning_rate 1e-5 \
-    --reg_learning_rate 0.2 \
+    --learning_rate 5e-5 \
+    --reg_learning_rate 0.1 \
     --lagrangian_warmup_epochs 1 \
     --max_seq_length 512 \
     --task_name cotrain \
