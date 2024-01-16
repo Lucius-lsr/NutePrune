@@ -21,7 +21,7 @@ def get_c4_data_module(tokenizer, model_args, data_args, training_args):
         'allenai/c4', 'allenai--c4', data_files={'train': 'en/c4-train.00000-of-01024.json.gz'}, split='train', revision='607bd4c8450a42878aa9ddc051a65a055450ef87'
     )
     print('data count: ', raw_datasets.num_rows)
-    raw_datasets = raw_datasets.select(range(20000))
+    raw_datasets = raw_datasets.select(range(200000))
     print('data count: ', raw_datasets.num_rows)
     
     column_names=['timestamp','url','text']
