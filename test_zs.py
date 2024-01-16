@@ -35,7 +35,7 @@ def analyze(peft):
     return (MODEL_SIZE-remaining_model_size)/MODEL_SIZE
 
 
-experiments = 'output/Compresso-alternative-s50.0-lr5e-06-reglr0.2-warmup1/iter_layerdis_alter_50_50'
+experiments = 'output/Compresso-cotrain-s50.0-lr2e-05-reglr0.1-warmup1/super'
 
 checkpoints = os.listdir(experiments)
 checkpoints = sorted(checkpoints)
