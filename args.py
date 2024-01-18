@@ -28,6 +28,7 @@ class AdditionalArguments():
     temperature: float = field(default=2./3., metadata={"help": "Temperature controlling hard concrete distribution"})
     prepruning_finetune_epochs: int = field(default=1, metadata={"help": "Finetuning epochs before pruning"})
     lagrangian_warmup_epochs: int = field(default=2, metadata={"help": "Number of epochs for lagrangian warmup"})
+    lagrangian_warmup_steps: int = field(default=-1, metadata={"help": "Number of steps for lagrangian warmup"})
     target_sparsity: float = field(default=0, metadata={"help": "Target sparsity (pruned percentage)"})
     sparsity_epsilon: float = field(default=0, metadata={"help": "Epsilon for sparsity"})
     block_layer_start: int = field(default=None)

@@ -214,6 +214,8 @@ class EfficientTrainer(Trainer):
             # self.prepruning_finetune_steps = len_dataloader * self.additional_args.prepruning_finetune_epochs
         if self.l0_module is not None:
             lagrangian_warmup_steps = self.additional_args.lagrangian_warmup_epochs * num_update_steps_per_epoch #! 24544
+            if self.additional_args.lagrangian_warmup_steps != -1:
+                lagrangian_warmup_steps = self.additional_args.lagrangian_warmup_steps
             self.l0_module.set_lagrangian_warmup_steps(lagrangian_warmup_steps)
             logger.info(f"Prepruning finetune steps: {self.prepruning_finetune_steps}")
             logger.info(f"Lagrangian warmup steps: {lagrangian_warmup_steps}")
