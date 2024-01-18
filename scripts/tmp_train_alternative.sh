@@ -5,6 +5,8 @@ export TQDM_DISABLED=true
 export OUTPUT_DIR=output
 mkdir -p $OUTPUT_DIR
 
+export CUDA_VISIBLE_DEVICES=0
+
 python tmp_train.py \
     --pruning_type structured_heads+structured_mlp+hidden\
     --target_sparsity 0.5 \
@@ -28,7 +30,6 @@ python tmp_train.py \
     --overwrite_output_dir \
     --output_dir $OUTPUT_DIR/ \
     --cache_dir /dev/shm \
-    --use_lora False \
     --gradient_checkpointing=True \
     --logging_first_step \
     --logging_steps 10 \
