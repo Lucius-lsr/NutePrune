@@ -11,14 +11,15 @@ python train.py \
     --sparsity_epsilon 0.005 \
     --model_name_or_path baffo32/decapoda-research-llama-7B-hf \
     --num_train_epochs 1 \
-    --learning_rate 1e-5 \
+    --learning_rate 1e-3 \
     --reg_learning_rate 0.1 \
-    --lagrangian_warmup_epochs 1 \
+    --lagrangian_warmup_steps 1500 \
     --max_seq_length 512 \
-    --task_name cotrain \
+    --task_name large_cotrain \
     --do_train \
     --do_eval \
     --dataset_name c4 \
+    --overwrite_cache True \
     --eval_dataset_name wikitext \
     --train_file ./data/alpaca_gpt4_data.json \
     --droprate_init 0.01 \
@@ -42,5 +43,4 @@ python train.py \
     --lora_layers 32 \
     --do_distill \
     --do_layer_distill \
-    --do_iterative_distill \
 

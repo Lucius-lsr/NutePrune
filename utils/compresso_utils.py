@@ -39,7 +39,10 @@ def load_model(model_path, model_class, zs=None):
 
 # load the l0 module
 def load_l0_module(model_path):
-    l0_module_path = os.path.join(model_path, "l0_module.pt")
+    if model_path.endswith("l0_module.pt"):
+        l0_module_path = model_path
+    else:
+        l0_module_path = os.path.join(model_path, "l0_module.pt")
     if os.path.exists(l0_module_path):
         return torch.load(l0_module_path, map_location=torch.device('cpu'))
     else:

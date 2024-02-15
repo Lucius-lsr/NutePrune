@@ -264,7 +264,7 @@ class LlamaModel(SeqToSeqModel):
             # if not self.load_8bit:
             #     self.model.to(self.device)
                 # model initialize
-            def set_lora_args(config, lora_param):
+            def set_lora_args(config, use_lora, lora_param):
                 config.use_lora = True
                 config.lora_rank = 8
                 config.lora_train_bias = None
@@ -277,10 +277,14 @@ class LlamaModel(SeqToSeqModel):
             )
             config.use_cache = False
             lora_ckpt = None
-            pretrained_pruned_model = 'output/Compresso-alternative-s50.0-lr5e-06-reglr0.2-warmup1/iter_layerdis_alter_50_50'
+            self.zs = None
 
+            # pretrained_pruned_model = None
+            pretrained_pruned_model = 'output/Compresso-finetune-s0-lr0.0001-reglr0.1-warmup0/alpaca_mmlu_fulllora/epoch1'
+
+            config = set_lora_args(config, False, '')
             if pretrained_pruned_model is not None:
-                config = set_lora_args(config, 'Q.V')
+                config = set_lora_args(config, True, 'Q.K.V.O.F')
                 peft = pretrained_pruned_model
                 lora_ckpt = os.path.join(peft, 'lora_weights.pt')
                 if not os.path.exists(lora_ckpt):
@@ -289,9 +293,7 @@ class LlamaModel(SeqToSeqModel):
                     config.lora_param = ''
             # lora_ckpt = None  # no lora
             self.tokenizer = LlamaTokenizer.from_pretrained(
-                self.model_path,
-                padding_side="left",
-                truncation_side="left",
+                self.model_path
             )
             self.model = LlamaForCausalLM.from_pretrained(
                 LlamaForCausalLM,
@@ -445,138 +447,11 @@ def load_quant(
     print("Done.")
     return model
 
-
-class GPTQModel(LlamaModel):
-    quantized_path: str
-    model: Optional[LlamaForCausalLM]
-    tokenizer: Optional[LlamaTokenizer]
-    num_bits: int = 4
-    group_size: int = 128
-
-    def load(self):
-        # https://github.com/qwopqwop200/GPTQ-for-LLaMa/blob/05781593c818d4dc8adc2d32c975e83d17d2b9a8/llama_inference.py
-        torch.backends.cuda.matmul.allow_tf32 = False
-        torch.backends.cudnn.allow_tf32 = False
-        if not Path(self.quantized_path).exists():
-            url = f"https://huggingface.co/{self.model_path}/resolve/main/{self.quantized_path}"
-            download_url(url, root=".")
-
-        if self.model is None:
-            self.model = load_quant(
-                model=self.model_path,
-                checkpoint=self.quantized_path,
-                wbits=self.num_bits,
-                groupsize=self.group_size,
-            )
-            self.model.to(self.device)
-
-        if self.tokenizer is None:
-            self.tokenizer = LlamaTokenizer.from_pretrained(self.model_path)
-            self.test_max_length()
-
-    def test_max_length(self):
-        # Detect any OOMs at the beginning
-        text = " ".join(["test sentence for max length"] * 1000)
-        self.run(text)
-
-
-class ChatGLMModel(SeqToSeqModel):
-    def load(self):
-        if self.tokenizer is None:
-            self.tokenizer = AutoTokenizer.from_pretrained(
-                self.model_path, trust_remote_code=True
-            )
-        if self.model is None:
-            self.model = AutoModel.from_pretrained(
-                self.model_path, trust_remote_code=True
-            ).half()  # FP16 is required for ChatGLM
-            self.model.eval()
-            self.model.to(self.device)
-
-    def run(self, prompt: str, **kwargs) -> str:
-        self.load()
-        response, history = self.model.chat(
-            self.tokenizer,
-            prompt,
-            history=[],
-            **kwargs,
-        )
-        return response
-
-
-class RWKVModel(EvalModel):
-    tokenizer_path: str = (
-        "https://github.com/BlinkDL/ChatRWKV/raw/main/20B_tokenizer.json"
-    )
-    download_root: str = "."
-    model: Optional[rwkv.utils.PIPELINE]
-
-    def download(self, url: str) -> str:
-        path = Path(self.download_root, Path(url).name)
-        if not path.exists():
-            download_url(url, root=self.download_root)
-        return str(path)
-
-    def load(self):
-        model_path = self.download(self.model_path)
-        tokenizer_path = self.download(self.tokenizer_path)
-
-        if self.model is None:
-            model = RWKV(model=model_path, strategy="cuda fp16")
-            self.model = rwkv.utils.PIPELINE(model, tokenizer_path)
-
-    def run(self, prompt: str, **kwargs) -> str:
-        # Adapted from: https://github.com/BlinkDL/ChatRWKV/blob/main/v2/benchmark_more.py
-        self.load()
-        out_tokens = []
-        out_last = 0
-        out_str = ""
-        occurrence = {}
-        state = None
-        token = None
-
-        # ctx = f"Bob: {prompt.strip()}\n\nAlice:"
-        ctx = prompt  # Special format has lower few-shot performance
-
-        for i in range(self.max_output_length):
-            tokens = self.model.encode(ctx) if i == 0 else [token]
-
-            out, state = self.model.model.forward(tokens, state)
-            for n in occurrence:
-                out[n] -= 0.2 + occurrence[n] * 0.2
-
-            token = self.model.sample_logits(out, temperature=1.0, top_p=0)
-            if token == 0:
-                break  # exit when 'endoftext'
-
-            out_tokens += [token]
-            occurrence[token] = 1 + (occurrence[token] if token in occurrence else 0)
-
-            tmp = self.model.decode(out_tokens[out_last:])
-            if ("\ufffd" not in tmp) and (not tmp.endswith("\n")):
-                # only print when the string is valid utf-8 and not end with \n
-                out_str += tmp
-                out_last = i + 1
-
-            if "\n\n" in tmp:
-                break  # exit when '\n\n'
-
-        return out_str
-
-    def count_text_length(self, text: str) -> int:
-        self.load()
-        return len(self.model.encode(text))
-
-
 def select_model(model_name: str, **kwargs) -> EvalModel:
     model_map = dict(
         seq_to_seq=SeqToSeqModel,
         causal=CausalModel,
         llama=LlamaModel,
-        chatglm=ChatGLMModel,
-        openai=OpenAIModel,
-        rwkv=RWKVModel,
-        gptq=GPTQModel,
     )
     model_class = model_map.get(model_name)
     if model_class is None:

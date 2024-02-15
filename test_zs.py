@@ -10,18 +10,18 @@ def analyze(peft):
     intermediate_z = zs['intermediate_z']
 
     # detail
-    # num_hidden_z = (hidden_z > 0).sum()
-    # print(f'num_hidden_z: {num_hidden_z}')
-    # print('num_head_z: ')
-    # for h_z in head_z.squeeze():
-    #     num_head_z = (h_z > 0).sum().item()
-    #     print(num_head_z, end=' ')
-    # print()
-    # print('num_intermediate_z: ')
-    # for i_z in intermediate_z:
-    #     num_intermediate_z = (i_z > 0).sum().item()
-    #     print(num_intermediate_z, end=' ')
-    # print()
+    num_hidden_z = (hidden_z > 0).sum()
+    print(f'num_hidden_z: {num_hidden_z}')
+    print('num_head_z: ')
+    for h_z in head_z.squeeze():
+        num_head_z = (h_z > 0).sum().item()
+        print(num_head_z, end=' ')
+    print()
+    print('num_intermediate_z: ')
+    for i_z in intermediate_z:
+        num_intermediate_z = (i_z > 0).sum().item()
+        print(num_intermediate_z, end=' ')
+    print()
 
     # sparsity
     hidden_z = hidden_z.detach().numpy() > 0
@@ -34,12 +34,12 @@ def analyze(peft):
     MODEL_SIZE = 6476005376
     return (MODEL_SIZE-remaining_model_size)/MODEL_SIZE
 
-experiments = 'output/Compresso-cotrain-s20.0-lr1e-05-reglr0.1-warmup1/iter_layerdis'
-checkpoints = os.listdir(experiments)
-checkpoints = sorted(checkpoints)
-for checkpoint in checkpoints:
-    if checkpoint.startswith('epoch'):
-        peft = os.path.join(experiments, checkpoint)
-        print(checkpoint, analyze(peft))
+# experiments = 'output/checkpoint/20_warmup4_cotrain_epoch5'
+# checkpoints = os.listdir(experiments)
+# checkpoints = sorted(checkpoints)
+# for checkpoint in checkpoints:
+#     if checkpoint.startswith('epoch'):
+#         peft = os.path.join(experiments, checkpoint)
+#         print(checkpoint, analyze(peft))
 
-# print(analyze('output/Compresso-pruning_only-s50.0-lr5e-05-reglr0.1-warmup1/iter_layerdis_uniform_warmalpha/epoch6'))
+print(analyze('output/checkpoint/50_warmup1_cotrain_epoch6'))

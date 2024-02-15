@@ -16,7 +16,7 @@ from models.l0_module import L0Module
 from args import AdditionalArguments, DataTrainingArguments
 from transformers.trainer_utils import get_last_checkpoint
 from models.modeling_llama import LlamaForCausalLM
-from utils.compresso_utils import load_zs, initialize_layer_transformation
+from utils.compresso_utils import load_zs, load_l0_module
 from models.modeling_llama import LlamaConfig
 from models.tokenization_llama import LlamaTokenizer
 from models.model_args import ModelArguments
@@ -153,17 +153,20 @@ def main():
 
     l0_module = None
     if additional_args.pruning_type is not None:
-        l0_module = L0Module(config=config,
-                            droprate_init=additional_args.droprate_init,
-                            layer_gate_init_open=additional_args.layer_gate_init_open,
-                            layer_gate_open_0=additional_args.layer_gate_open_0,
-                            block_layer_start=additional_args.block_layer_start,
-                            block_layer_end=additional_args.block_layer_end,
-                            sparsity_scheduler=additional_args.sparsity_scheduler,
-                            temperature=additional_args.temperature,
-                            target_sparsity=additional_args.target_sparsity,
-                            pruning_type=additional_args.pruning_type)
-        # l0_module.half()
+        if additional_args.pretrained_pruned_model is not None:
+            l0_module = load_l0_module(os.path.join(additional_args.pretrained_pruned_model, 'l0_module.pt'))
+            logger.info(f"Load pretrained l0_module!")
+        else:
+            l0_module = L0Module(config=config,
+                                droprate_init=additional_args.droprate_init,
+                                layer_gate_init_open=additional_args.layer_gate_init_open,
+                                layer_gate_open_0=additional_args.layer_gate_open_0,
+                                block_layer_start=additional_args.block_layer_start,
+                                block_layer_end=additional_args.block_layer_end,
+                                sparsity_scheduler=additional_args.sparsity_scheduler,
+                                temperature=additional_args.temperature,
+                                target_sparsity=additional_args.target_sparsity,
+                                pruning_type=additional_args.pruning_type)
 
     zs = None
     if additional_args.pretrained_pruned_model is not None:
@@ -197,7 +200,8 @@ def main():
     logger.info("Remove AzureMLCallback and ProgressCallback in Trainer.")
 
     if additional_args.pretrained_pruned_model is not None:
-        trainer.zs = zs
+        if l0_module is None:  # continue train zs instead of load fixed zs
+            trainer.zs = zs
 
     # Training
     if training_args.do_train:

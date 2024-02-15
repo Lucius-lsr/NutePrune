@@ -1,6 +1,6 @@
 export PYTHONPATH='.'
 
-base_model=baffo32/decapoda-research-llama-7B-hf
+base_model=huggyllama/llama-13b
 python ./evaluation/instruct-eval/main.py \
     --model_name llama \
     --model_path $base_model \

@@ -12,9 +12,15 @@ def load_zs(peft):
         hidden_z = torch.from_numpy(np.ones(4096))
         head_z = torch.from_numpy(np.ones((32, 32)))
         intermediate_z = torch.from_numpy(np.ones((32, 11008)))
-        for i in range(3,30):
-            head_z[i][:int(32*0.6)] = 0
-            intermediate_z[i][:int(11008*0.6)] = 0
+        # # 50% pruning
+        # for i in range(3,30):
+        #     head_z[i][:int(32*0.6)] = 0
+        #     intermediate_z[i][:int(11008*0.6)] = 0
+        # 20% pruning
+        for i in range(4,30):
+            head_z[i][:int(32*0.25)] = 0
+            intermediate_z[i][:int(11008*0.25)] = 0
+        
         return hidden_z > 0, head_z > 0, intermediate_z > 0
     elif peft == 'sheared':
         hidden_z = torch.from_numpy(np.ones(4096))
@@ -26,12 +32,12 @@ def load_zs(peft):
         return hidden_z > 0, head_z > 0, intermediate_z > 0
     zs = torch.load(os.path.join(peft, 'zs.pt'), map_location="cpu")
     hidden_z = zs['hidden_z'] if 'hidden_z' in zs.keys() else torch.from_numpy(np.ones(4096))
-    # print((hidden_z>0).sum().item())
-    # exit()
-    hidden_z = torch.from_numpy(np.concatenate([np.ones(3456),np.zeros(4096-3456)]))
     head_z = zs['head_z']
     intermediate_z = zs['intermediate_z']
     hidden_z = hidden_z.detach() > 0
+    print(hidden_z.sum().item())
+    # target = 4064
+    # hidden_z = torch.from_numpy(np.concatenate([np.ones(target),np.zeros(4096-target)])).detach() > 0
     head_z = head_z.detach() > 0
     intermediate_z = intermediate_z.detach() > 0
     return hidden_z, head_z, intermediate_z
@@ -104,7 +110,7 @@ def test_latency(peft):
     # ]
 
     # Create a sampling params object.
-    sampling_params = SamplingParams(temperature=0.8, top_p=0.95, ignore_eos=True, max_tokens=1024)
+    sampling_params = SamplingParams(temperature=0.8, top_p=0.95, ignore_eos=True, max_tokens=256)
 
     # Create an LLM.
     llm = LLM(model="baffo32/decapoda-research-llama-7B-hf")
@@ -119,9 +125,10 @@ def test_latency(peft):
         count_param(llm.llm_engine.workers[0].model)
 
     t1 = time.time()
-    outputs = llm.generate(prompts, sampling_params)
+    for _ in range(10):
+        outputs = llm.generate(prompts, sampling_params)
     t2 = time.time()
-    print("Time taken: ", t2-t1)
+    print("Time taken: ", (t2-t1)/10)
 
     # # Print the outputs.
     # for output in outputs:
@@ -132,13 +139,15 @@ def test_latency(peft):
 if __name__ == '__main__':
     pefts = [
         None,
-        'output/Compresso-pruning-s50.0-lr5e-05-reglr0.1-warmup1/small_combined_layerdistill_16bs/epoch2',
-        'output/Compresso-pruning-s50.0-lr5e-05-reglr0.1-warmup1/small_combined_distill/epoch1',
-        # 'output/Compresso-pruning-s50.0-lr5e-05-reglr0.1-warmup1/20k_c4_2epoch_supervised/epoch1',
-        'output/Compresso-pruning-s50.0-lr5e-05-reglr0.1-warmup1/small_combined_distill_full_hidden/epoch4',
-        'llm_pruner',
-        'sheared',
-        'output/Compresso-pruning_only-s50.0-lr5e-05-reglr0.1-warmup1/uniform/epoch6',
+        # 'output/Compresso-pruning-s50.0-lr5e-05-reglr0.1-warmup1/small_combined_layerdistill_16bs/epoch2',
+        # 'output/Compresso-pruning-s50.0-lr5e-05-reglr0.1-warmup1/small_combined_distill/epoch1',
+        # # 'output/Compresso-pruning-s50.0-lr5e-05-reglr0.1-warmup1/20k_c4_2epoch_supervised/epoch1',
+        # 'output/Compresso-pruning-s50.0-lr5e-05-reglr0.1-warmup1/small_combined_distill_full_hidden/epoch4',
+        # 'llm_pruner',
+        # 'sheared',
+        # 'output/Compresso-pruning_only-s50.0-lr5e-05-reglr0.1-warmup1/uniform/epoch6',
+        # 'output/checkpoint/50_warmup1_cotrain_epoch6',
+        # 'output/checkpoint/20_warmup4_cotrain_epoch5'
     ]
 
     test_latency(pefts[-1])

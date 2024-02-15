@@ -5,20 +5,24 @@ export TQDM_DISABLED=true
 export OUTPUT_DIR=output
 mkdir -p $OUTPUT_DIR
 
-python tmp_train.py \
+baseline_pruned_model=output/Compresso-pruning_only-s50.0-lr5e-05-reglr0.1-warmup1/layerdis_iter_dense_dual_7/epoch6
+
+python train.py \
     --pruning_type structured_heads+structured_mlp+hidden\
     --target_sparsity 0.5 \
     --sparsity_epsilon 0.005 \
     --model_name_or_path baffo32/decapoda-research-llama-7B-hf \
-    --num_train_epochs 7 \
+    --pretrained_pruned_model $baseline_pruned_model \
+    --num_train_epochs 1 \
     --learning_rate 1e-3 \
-    --reg_learning_rate 0.2 \
-    --lagrangian_warmup_epochs 1 \
+    --reg_learning_rate 0.1 \
+    --lagrangian_warmup_steps 0 \
     --max_seq_length 512 \
-    --task_name alternative \
+    --task_name large_cotrain_from_mask \
     --do_train \
     --do_eval \
     --dataset_name c4 \
+    --overwrite_cache False \
     --eval_dataset_name wikitext \
     --train_file ./data/alpaca_gpt4_data.json \
     --droprate_init 0.01 \
@@ -42,3 +46,4 @@ python tmp_train.py \
     --lora_layers 32 \
     --do_distill \
     --do_layer_distill \
+

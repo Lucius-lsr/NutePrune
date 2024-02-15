@@ -5,24 +5,21 @@ export TQDM_DISABLED=true
 export OUTPUT_DIR=output
 mkdir -p $OUTPUT_DIR
 
-# baseline_pruned_model=output/Compresso-pruning_only-s50.0-lr5e-05-reglr0.1-warmup1/layerdis_iter_dense_dual_7/epoch6
-# baseline_pruned_model=output/Compresso-pruning_only-s20.0-lr5e-05-reglr0.1-warmup1/iter_layerdis/epoch6
-# baseline_pruned_model=output/Compresso-pruning-s20.0-lr1e-05-reglr0.1-warmup1/compresso_20/epoch4
-baseline_pruned_model=output/Compresso-cotrain-s20.0-lr0.001-reglr0.1-warmup1/iter_layerdis_correct/epoch5
+baseline_pruned_model=output/checkpoint/20_13b_warmup4_cotrain_epoch5
 
 python train.py \
     --pruning_type None \
-    --model_name_or_path baffo32/decapoda-research-llama-7B-hf \
+    --model_name_or_path huggyllama/llama-13b \
     --pretrained_pruned_model $baseline_pruned_model \
-    --num_train_epochs 3 \
-    --learning_rate 1e-3 \
+    --num_train_epochs 2 \
+    --learning_rate 1e-4 \
     --reg_learning_rate 0.1 \
     --lagrangian_warmup_epochs 0 \
     --max_seq_length 512 \
     --task_name finetune \
     --do_train \
     --do_eval \
-    --dataset_name c4 \
+    --dataset_name alpaca \
     --overwrite_cache False \
     --eval_dataset_name wikitext \
     --train_file ./data/alpaca_data_cleaned.json \
@@ -36,7 +33,7 @@ python train.py \
     --lora_rank 8 \
     --lora_train_bias none \
     --lora_alpha 8.0 \
-    --lora_param Q.V \
+    --lora_param Q.K.V.O.F \
     --lora_layers 32 \
     --gradient_checkpointing=True \
     --logging_first_step \
@@ -44,5 +41,3 @@ python train.py \
     --disable_tqdm False \
     --fp16 True \
     --random_init=False \
-    --do_distill \
-    --do_layer_distill \

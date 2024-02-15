@@ -11,11 +11,11 @@ python train.py \
     --sparsity_epsilon 0.005 \
     --model_name_or_path baffo32/decapoda-research-llama-7B-hf \
     --num_train_epochs 7 \
-    --learning_rate 1e-5 \
+    --learning_rate 1e-3 \
     --reg_learning_rate 0.1 \
-    --lagrangian_warmup_epochs 1 \
+    --lagrangian_warmup_epochs 4 \
     --max_seq_length 512 \
-    --task_name cotrain \
+    --task_name distill \
     --do_train \
     --do_eval \
     --dataset_name c4 \
@@ -40,4 +40,6 @@ python train.py \
     --lora_alpha 8.0 \
     --lora_param Q.V \
     --lora_layers 32 \
+    --do_distill \
+    --do_iterative_distill \
 
