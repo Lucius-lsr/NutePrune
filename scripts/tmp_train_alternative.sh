@@ -5,6 +5,8 @@ export TQDM_DISABLED=true
 export OUTPUT_DIR=output
 mkdir -p $OUTPUT_DIR
 
+export CUDA_VISIBLE_DEVICES=0
+
 python tmp_train.py \
     --pruning_type structured_heads+structured_mlp+hidden\
     --target_sparsity 0.5 \
