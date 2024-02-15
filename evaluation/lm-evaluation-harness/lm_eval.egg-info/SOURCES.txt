@@ -75,7 +75,7 @@ lm_eval/decontamination/decontaminate.py
 lm_eval/decontamination/janitor.py
 lm_eval/models/__init__.py
 lm_eval/models/anthropic_llms.py
-lm_eval/models/compresso.py
+lm_eval/models/nuteprune.py
 lm_eval/models/dummy.py
 lm_eval/models/gpt2.py
 lm_eval/models/gpt3.py

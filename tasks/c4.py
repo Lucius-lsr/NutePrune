@@ -125,39 +125,3 @@ def get_c4_data_module(tokenizer, model_args, data_args, training_args):
         compute_metrics= None,
         preprocess_logits_for_metrics=None,
     )
-
-
-def evaluate_c4(model, model_args, data_args, training_args):
-    from trainer.compresso_trainer import CompressoTrainer
-
-    if "llama" in model_args.model_name_or_path:
-        tokenizer = LlamaTokenizer.from_pretrained(
-            model_args.tokenizer_name if model_args.tokenizer_name else model_args.model_name_or_path,
-            cache_dir=model_args.cache_dir,
-            use_fast=model_args.use_fast_tokenizer,
-            revision=model_args.model_revision,
-            use_auth_token=True if model_args.use_auth_token else None,
-            padding_side="left",
-            truncation_side="left",
-        )
-    else:
-        raise ValueError("Tokenizer is not set.")
-
-    data_module = get_c4_data_module(tokenizer, model_args, data_args, training_args)
-
-    trainer = CompressoTrainer(
-        model=model,
-        tokenizer = tokenizer,
-        args=training_args,
-        **data_module
-    )
-
-    metrics = trainer.evaluate()
-
-    try:
-        perplexity = math.exp(metrics["eval_loss"])
-    except OverflowError:
-        perplexity = float("inf")
-    metrics["perplexity"] = perplexity
-
-    return metrics

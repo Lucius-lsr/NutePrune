@@ -5,14 +5,14 @@ from . import huggingface
 # from . import llm_pruner
 # from . import textsynth
 # from . import dummy
-from . import compresso
+from . import nuteprune
 
 MODEL_REGISTRY = {
     # "hf": gpt2.HFLM,
     "hf-causal": gpt2.HFLM,
     "hf-causal-experimental": huggingface.AutoCausalLM,
     # "llm-pruner": llm_pruner.AutoCausalLM,
-    "compresso": compresso.AutoCausalLM,
+    "nuteprune": nuteprune.AutoCausalLM,
     # "hf-seq2seq": huggingface.AutoSeq2SeqLM,
     # "gpt2": gpt2.GPT2LM,
     # "gpt3": gpt3.GPT3LM,

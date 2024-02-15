@@ -12,7 +12,7 @@ from args import AdditionalArguments
 from models.modeling_llama import LlamaForCausalLM
 from models.modeling_llama import LlamaConfig
 from models.model_args import ModelArguments
-from utils.compresso_utils import load_zs
+from utils.nuteprune_utils import load_zs
 
 logger = logging.getLogger(__name__)
 

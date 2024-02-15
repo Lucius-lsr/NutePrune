@@ -154,7 +154,7 @@ class EfficientTrainer(Trainer):
 
         import datetime
         now = datetime.datetime.now()
-        self.args.output_dir = os.path.join(self.args.output_dir, 'Compresso-{}-s{}-lr{}-reglr{}-warmup{}/{}-{}-{}-{}-{}'.format(
+        self.args.output_dir = os.path.join(self.args.output_dir, 'NutePrune-{}-s{}-lr{}-reglr{}-warmup{}/{}-{}-{}-{}-{}'.format(
             self.additional_args.task_name,
             self.additional_args.target_sparsity*100,
             self.args.learning_rate,

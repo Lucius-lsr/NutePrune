@@ -244,7 +244,7 @@ class LlamaModel(SeqToSeqModel):
     def load(self):
         import os
         from models.modeling_llama import LlamaForCausalLM
-        from utils.compresso_utils import load_zs
+        from utils.nuteprune_utils import load_zs
         from models.modeling_llama import LlamaConfig
         from models.tokenization_llama import LlamaTokenizer
 
@@ -280,7 +280,7 @@ class LlamaModel(SeqToSeqModel):
             self.zs = None
 
             # pretrained_pruned_model = None
-            pretrained_pruned_model = 'output/Compresso-finetune-s0-lr0.0001-reglr0.1-warmup0/alpaca_mmlu_fulllora/epoch1'
+            pretrained_pruned_model = 'output/NutePrune-finetune-s0-lr0.0001-reglr0.1-warmup0/alpaca_mmlu_fulllora/epoch1'
 
             config = set_lora_args(config, False, '')
             if pretrained_pruned_model is not None:

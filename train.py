@@ -10,13 +10,12 @@ from transformers import (
     TrainingArguments,
     set_seed,
 )
-from trainer.compresso_trainer import CompressoTrainer
 from trainer.efficient_trainer import EfficientTrainer
 from models.l0_module import L0Module
 from args import AdditionalArguments, DataTrainingArguments
 from transformers.trainer_utils import get_last_checkpoint
 from models.modeling_llama import LlamaForCausalLM
-from utils.compresso_utils import load_zs, load_l0_module
+from utils.nuteprune_utils import load_zs, load_l0_module
 from models.modeling_llama import LlamaConfig
 from models.tokenization_llama import LlamaTokenizer
 from models.model_args import ModelArguments

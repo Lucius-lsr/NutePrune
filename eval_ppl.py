@@ -12,7 +12,7 @@ from transformers import (
 )
 from args import AdditionalArguments, DataTrainingArguments
 from models.modeling_llama import LlamaForCausalLM
-from utils.compresso_utils import load_zs
+from utils.nuteprune_utils import load_zs
 from models.modeling_llama import LlamaConfig
 from models.tokenization_llama import LlamaTokenizer
 from models.model_args import ModelArguments
