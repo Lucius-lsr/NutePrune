@@ -83,7 +83,7 @@ class EfficientTrainer(Trainer):
             logger.info("LoRA enabled.")
         if self.additional_args.do_iterative_distill:
             from utils.distill_utils import IterativeDistillManager
-            self.iter_manager = IterativeDistillManager()
+            self.iter_manager = IterativeDistillManager(additional_args.target_sparsity)
 
     def create_optimizer_and_scheduler(self, num_training_steps: int, build_l0_optimizer:bool=True):
         def log_params(param_groups, des):

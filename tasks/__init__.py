@@ -2,10 +2,9 @@
 # Licensed under the MIT license.
 from pprint import pprint
 
-from . import alpaca, wikitext, c4, llm_qat_data, c4_prompt
+from . import alpaca, wikitext, c4, llm_qat_data
 
 TASK_EVALUATE_REGISTRY = {
-    "c4": c4.evaluate_c4,
     "alpaca-gpt4": alpaca.evaluate_alpaca,
     "alpaca-cleaned": alpaca.evaluate_alpaca,
 }
@@ -18,7 +17,6 @@ TASK_DATA_MODULE_REGISTRY = {
     "alpaca-gpt4": alpaca.get_alpaca_data_module,
     "alpaca-cleaned": alpaca.get_alpaca_data_module,
     "llm_qat": llm_qat_data.get_llmqat_data_module,
-    "c4_prompt": c4_prompt.get_c4_prompt_data_module,
 }
 
 

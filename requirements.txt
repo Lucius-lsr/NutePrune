@@ -7,9 +7,9 @@ scikit-learn
 numpy
 tqdm
 protobuf==3.19.0
-deepspeed==0.7.7 
+deepspeed
 evaluate 
-datasets==2.8.0 
+datasets
 sentencepiece==0.1.97 
 scipy 
 scikit-learn 

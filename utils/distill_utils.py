@@ -2,9 +2,9 @@ import copy
 import utils.lora_utils as lora
 
 class IterativeDistillManager:
-    def __init__(self):
+    def __init__(self, target_sparsity):
         self.sparsity_interval = 0.01
-        self.target = 0.2
+        self.target = target_sparsity
         self.teacher_ahead = 10
 
         self.sparsity_to_record = [i*self.sparsity_interval for i in range(1, int(self.target/self.sparsity_interval))]

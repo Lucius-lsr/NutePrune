@@ -4,16 +4,18 @@ export TQDM_DISABLED=true
 
 export OUTPUT_DIR=output
 mkdir -p $OUTPUT_DIR
+export CUDA_VISIBLE_DEVICES=0,6
+export HF_ENDPOINT=https://hf-mirror.com
 
-python train.py \
+torchrun --nproc_per_node 2 --master_port 9527 train.py \
     --pruning_type structured_heads+structured_mlp+hidden\
-    --target_sparsity 0.2 \
+    --target_sparsity 0.7 \
     --sparsity_epsilon 0.005 \
     --model_name_or_path baffo32/decapoda-research-llama-7B-hf \
     --num_train_epochs 7 \
     --learning_rate 1e-3 \
     --reg_learning_rate 0.1 \
-    --lagrangian_warmup_epochs 4 \
+    --lagrangian_warmup_epochs 1 \
     --max_seq_length 512 \
     --task_name distill \
     --do_train \
@@ -22,8 +24,8 @@ python train.py \
     --eval_dataset_name wikitext \
     --train_file ./data/alpaca_gpt4_data.json \
     --droprate_init 0.01 \
-    --per_device_train_batch_size 16 \
-    --per_device_eval_batch_size 16 \
+    --per_device_train_batch_size 8 \
+    --per_device_eval_batch_size 8 \
     --training_objective LM \
     --overwrite_output_dir \
     --output_dir $OUTPUT_DIR/ \
