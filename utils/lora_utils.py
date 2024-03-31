@@ -213,6 +213,22 @@ class Linear(nn.Linear, LoRALayer):
         #             self.weight.data += sign * delta_w
         #         self.merged = not mode
 
+    def merge(self):
+        def T(w):
+            return w.transpose(0, 1) if self.fan_in_fan_out else w
+        assert not self.merged
+        if self.r > 0:
+            gatherA = should_gather(self.lora_A)
+            gatherB = should_gather(self.lora_B)
+            gatherW = should_gather(self.weight)
+            with gatherA, gatherB, gatherW:
+                delta_w = (
+                    T(self.lora_B @ self.lora_A) *
+                    self.scaling
+                )
+                self.weight.data += delta_w
+            self.merged = True
+
     def forward(self, x: torch.Tensor):
         def T(w):
             return w.transpose(0, 1) if self.fan_in_fan_out else w
