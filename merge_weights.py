@@ -97,6 +97,14 @@ def main():
         ignore_mismatched_sizes=model_args.ignore_mismatched_sizes,
         lora_ckpt = lora_ckpt
     )
+
+    def merge_lora(module):
+        if hasattr(module, 'merge'):
+            module.merge()
+    for m in module.children():
+        merge_lora(m)
+
+    merge_lora(model)
     
     config.use_lora = False
     llama = LlamaForCausalLM.from_pretrained(LlamaForCausalLM, model_args.model_name_or_path, config=config)
