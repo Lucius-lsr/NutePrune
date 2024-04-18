@@ -11,9 +11,11 @@ pip install -r requirements.txt
 
 **Step 1**: Run ``bash ./scripts/cotrain.sh`` to try NutePrune pruning.
 
+Modify ``pruning_type`` ``target_sparsity`` ``model_name_or_path`` ``lagrangian_warmup_epochs``to run different tasks.
+
 ## Post Fine-tuning
 
-**Step 1**: After pruning, prepare the pruned output folder as ``$baseline_pruned_model``, it should consist of LoRA weights file ``lora_weights.pt`` and pruning mask file ``zs.pt`.
+**Step 1**: After pruning, prepare the pruned output folder as ``$baseline_pruned_model``, it should consist of LoRA weights file ``lora_weights.pt`` and pruning mask file ``zs.pt``.
 
 **Step 2**: Prepare dataset for training: Download official [Alpaca dataset](https://raw.githubusercontent.com/tatsu-lab/stanford_alpaca/main/alpaca_data.json) and put the dataset into ``./data``.
 
