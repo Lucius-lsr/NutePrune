@@ -20,7 +20,6 @@ python train.py \
     --do_eval \
     --dataset_name c4 \
     --eval_dataset_name wikitext \
-    --train_file ./data/alpaca_gpt4_data.json \
     --droprate_init 0.01 \
     --per_device_train_batch_size 16 \
     --per_device_eval_batch_size 16 \
