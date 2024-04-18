@@ -55,7 +55,6 @@ def main():
         model_args, data_args, training_args, additional_args = parser.parse_json_file(json_file=os.path.abspath(sys.argv[1]))
     else:
         model_args, data_args, training_args, additional_args = parser.parse_args_into_dataclasses()
-    additional_args.eval_dataset_name = additional_args.eval_dataset_name.split(",")
 
     # Setup logging
     logging.basicConfig(
@@ -102,8 +101,6 @@ def main():
     if model_args.training_objective == "LM":
         config = LlamaConfig.from_pretrained(
             model_args.config_name if model_args.config_name else model_args.model_name_or_path,
-            #num_labels=num_labels,
-            #finetuning_task=data_args.task_name,
             cache_dir=model_args.cache_dir,
             revision=model_args.model_revision,
         )
@@ -207,11 +204,5 @@ def main():
         trainer.train(None)
 
 if __name__ == "__main__":
-    '''
-    example command:
-    
-    # wikitext-2
-    python train.py --output_dir ./.tmp --model_name_or_path /home/jiahangxu/working/llama/7B_converted --dataset_name wikitext --dataset_config_name wikitext-2-raw-v1 --max_seq_length 1024 --do_train --training_objective LM
-    '''
     os.environ["WANDB_DISABLED"] = "true"
     main()
