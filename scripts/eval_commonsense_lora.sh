@@ -4,7 +4,6 @@ base_model=baffo32/decapoda-research-llama-7B-hf
 pretrained_dir=output/NutePrune-distill-s20.0-lr0.001-reglr0.1-warmup4/2024-2-13-18-14
 lora_param=Q.V. # the lora param in training
 
-python wait.py
 for e in epoch5 epoch6
 do
     pretrained_path=$pretrained_dir/$e
