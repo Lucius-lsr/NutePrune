@@ -16,3 +16,4 @@ scikit-learn
 py-spy
 pydantic==1.10.7
 zstandard
+mlflow
