@@ -11,7 +11,7 @@ pip install -r requirements.txt
 
 **Step 1**: Run ``bash ./scripts/cotrain.sh`` to try NutePrune pruning.
 
-Modify ``pruning_type`` ``target_sparsity`` ``model_name_or_path`` ``lagrangian_warmup_epochs``to run different tasks.
+(Modify ``pruning_type`` ``target_sparsity`` ``model_name_or_path`` ``lagrangian_warmup_epochs``to run different tasks.)
 
 ## Post Fine-tuning
 
@@ -19,7 +19,7 @@ Modify ``pruning_type`` ``target_sparsity`` ``model_name_or_path`` ``lagrangian_
 
 **Step 2**: Prepare dataset for training: Download official [Alpaca dataset](https://raw.githubusercontent.com/tatsu-lab/stanford_alpaca/main/alpaca_data.json) and put the dataset into ``./data``.
 
-**Step 3**: Run ``bash ./scripts/finetune_alpaca.sh`` to try post fine-tuning on alpaca.
+**Step 3**: Run ``bash ./scripts/finetune_alpaca.sh`` to try post fine-tuning on alpaca. (Modify ``baseline_pruned_model`` ``model_name_or_path`` to run different tasks)
 
 ## Evaluation
 
