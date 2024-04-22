@@ -38,7 +38,7 @@ python train.py \
     --lora_train_bias none \
     --lora_alpha 8.0 \
     --lora_param Q.V \
-    --lora_layers 32 \
+    --lora_layers -1 \
     --do_distill \
     --do_layer_distill \
     --do_iterative_distill \
