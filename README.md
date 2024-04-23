@@ -59,4 +59,4 @@ pip install protobuf
 
 Then merge lora weights and masks by runing ``bash ./scripts/merge_weights.sh``
 
-Then Run ``bash ./scripts/benchmark.sh``
+Then Run ``bash ./scripts/eval_benchmark.sh``
