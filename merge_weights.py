@@ -120,6 +120,7 @@ def main():
     update_params(llama, zs)
     
     output_path = "./llama_pruned" if training_args.output_dir == "./" else training_args.output_dir
+    llama.half()
     llama.save_pretrained(output_path)
     print(f"Pruning mask merged! Output path: {output_path}")
 
