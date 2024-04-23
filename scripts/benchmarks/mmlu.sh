@@ -1,3 +1,6 @@
+PRETRAINED=$1
+TOKENIZER=$2
+
 lm_eval --model hf \
     --model_args pretrained=$PRETRAINED,tokenizer=$TOKENIZER \
     --tasks mmlu \
