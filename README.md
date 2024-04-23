@@ -23,11 +23,11 @@ pip install -r requirements.txt
 
 ## Evaluation
 
-**1. PPL**:
+**1. PPL**
 
 Run ``bash ./scripts/eval_ppl.sh``
 
-**2.Zero-shot Commonsense Reasoning**
+**2. Zero-shot Commonsense Reasoning**
 
 First, install lm-evaluation-harness:
 ```
@@ -42,3 +42,21 @@ pip install deepspeed
 pip install sentencepiece
 ```
 Then Run ``bash ./scripts/eval_commonsense.sh``
+
+**3. Benchmarks**
+
+To evaluate MMLU, BBH, GSM8K and other LLM benchmarks, we recommond using the latest lm-evaluation-harness:
+```
+cd ~
+git clone https://github.com/EleutherAI/lm-evaluation-harness.git
+cd lm-evaluation-harness
+conda create -n leh python==3.9
+conda activate leh
+pip install -e .
+pip install sentencepiece
+pip install protobuf
+```
+
+Then merge lora weights and masks by runing ``bash ./scripts/merge_weights.sh``
+
+Then Run ``bash ./scripts/benchmark.sh``
