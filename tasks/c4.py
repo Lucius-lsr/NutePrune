@@ -1,13 +1,10 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT license.
-import math
 import logging
 from itertools import chain
 import transformers
 from transformers import DataCollatorWithPadding, default_data_collator
 from transformers.testing_utils import CaptureLogger
-from models.tokenization_llama import LlamaTokenizer
-from datasets import load_from_disk
 from datasets import load_dataset
 
 logger = logging.getLogger(__name__)

@@ -279,7 +279,6 @@ class EfficientTrainer(Trainer):
                 train_dataloader.sampler.set_epoch(epoch)
 
             epoch_iterator = train_dataloader
-            print("training on dataset with pruning prompt")
 
             # Reset the past mems state at the beginning of each epoch if necessary.
             if self.args.past_index >= 0:
@@ -471,7 +470,6 @@ class EfficientTrainer(Trainer):
         if self.additional_args.do_layer_distill: #! only do layer distill
             mlp_z = None
             head_layer_z = None
-            # logger.info(f"zs={zs}")
             if "mlp_z" in zs:
                 mlp_z = zs["mlp_z"].detach().cpu()
             if "head_layer_z" in zs:
@@ -513,9 +511,7 @@ class EfficientTrainer(Trainer):
                     specified_teacher_layers[0] = max(2, specified_teacher_layers[0])
                 else:
                     specified_teacher_layers = [2, 5, 8, 11]
-                # logger.info(f"sampled teacher layers: {specified_teacher_layers}")
-                # transformed_s_layer_o = [self.model.layer_transformation(
-                    # s_layer_o) for s_layer_o in student_layer_output]
+
                 transformed_s_layer_o = student_layer_output
                 specified_teacher_layer_reps = [
                     teacher_layer_output[i] for i in specified_teacher_layers] #! teacher: 4x[32,113,768]
@@ -683,6 +679,3 @@ class EfficientTrainer(Trainer):
     def fill_inputs_with_zs(self, zs, inputs):
         for key in zs:
             inputs[key] = zs[key].to(inputs["input_ids"].device)
-        if self.l0_module is not None:
-            inputs["block_layer_start"] = self.l0_module.block_layer_start
-            inputs["block_layer_end"] = self.l0_module.block_layer_end

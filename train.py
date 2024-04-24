@@ -14,13 +14,9 @@ from trainer.efficient_trainer import EfficientTrainer
 from models.l0_module import L0Module
 from args import AdditionalArguments, DataTrainingArguments
 from transformers.trainer_utils import get_last_checkpoint
-from models.modeling_llama import LlamaForCausalLM
 from utils.nuteprune_utils import load_zs, load_l0_module
-from models.modeling_llama import LlamaConfig
-from models.tokenization_llama import LlamaTokenizer
 from models.model_args import ModelArguments
 import torch
-import deepspeed
 
 logger = logging.getLogger(__name__)
 
@@ -98,54 +94,53 @@ def main():
     set_seed(training_args.seed)
 
     # model initialize
-    if model_args.training_objective == "LM":
-        config = LlamaConfig.from_pretrained(
-            model_args.config_name if model_args.config_name else model_args.model_name_or_path,
-            cache_dir=model_args.cache_dir,
-            revision=model_args.model_revision,
-        )
-        config.use_cache = False
-        lora_ckpt = None
-        config = set_lora_args(config, model_args)
-        if additional_args.do_layer_distill:
-            config.output_hidden_states = True
-        if additional_args.pretrained_pruned_model is not None:
-            lora_ckpt = os.path.join(additional_args.pretrained_pruned_model, 'lora_weights.pt')
-            if os.path.exists(lora_ckpt):
-                logger.info(f"Load lora ckpt from {lora_ckpt}")
-            else:
-                lora_ckpt = None
-                logger.info(f"No lora ckpt found")
-        tokenizer = LlamaTokenizer.from_pretrained(
-            model_args.tokenizer_name if model_args.tokenizer_name else model_args.model_name_or_path,
-            cache_dir=model_args.cache_dir,
-            use_fast=model_args.use_fast_tokenizer,
-            revision=model_args.model_revision,
-            padding_side="left",
-            truncation_side="left",
-            model_max_length=512,
-        )
-        if model_args.random_init:
-            from transformers.deepspeed import deepspeed_config
-            with deepspeed.zero.Init(config_dict_or_path=deepspeed_config()):
-                model = LlamaForCausalLM(
-                    config=config,
-                )
-        else:
-            model = LlamaForCausalLM.from_pretrained(
-                LlamaForCausalLM,
-                model_args.model_name_or_path,
-                from_tf=bool(".ckpt" in model_args.model_name_or_path),
-                config=config,
-                cache_dir=model_args.cache_dir,
-                revision=model_args.model_revision,
-                ignore_mismatched_sizes=model_args.ignore_mismatched_sizes,
-                lora_ckpt = lora_ckpt
-            )
-            model.half()  # accelerate
-            training_args.fp16 = True
+    CONFIG, TOKENIZER, CAUSALLM = None, None, None
+    if 'llama' in model_args.model_name_or_path.lower():
+        from models.modeling_llama import LlamaForCausalLM
+        from transformers.models.llama import LlamaConfig
+        from transformers import AutoTokenizer
+        CONFIG, TOKENIZER, CAUSALLM = LlamaConfig, AutoTokenizer, LlamaForCausalLM
+    elif 'mistral' in model_args.model_name_or_path.lower():
+        from transformers.models.mistral import MistralConfig
+        from models.modelling_mistral import MistralForCausalLM
+        from transformers import AutoTokenizer
+        CONFIG, TOKENIZER, CAUSALLM = MistralConfig, AutoTokenizer, MistralForCausalLM
     else:
-        raise ValueError("Training objective should be either cls or clm")
+        raise NotImplementedError
+
+    config = CONFIG.from_pretrained(
+        model_args.config_name if model_args.config_name else model_args.model_name_or_path,
+        revision=model_args.model_revision,
+    )
+    config.use_cache = False
+    lora_ckpt = None
+    config = set_lora_args(config, model_args)
+    if additional_args.do_layer_distill:
+        config.output_hidden_states = True
+    if additional_args.pretrained_pruned_model is not None:
+        lora_ckpt = os.path.join(additional_args.pretrained_pruned_model, 'lora_weights.pt')
+        if os.path.exists(lora_ckpt):
+            logger.info(f"Load lora ckpt from {lora_ckpt}")
+        else:
+            lora_ckpt = None
+            logger.info(f"No lora ckpt found")
+    tokenizer = TOKENIZER.from_pretrained(
+        model_args.tokenizer_name if model_args.tokenizer_name else model_args.model_name_or_path,
+        model_max_length=512,
+    )
+
+    model = CAUSALLM.from_pretrained(
+        model_args.model_name_or_path,
+        from_tf=bool(".ckpt" in model_args.model_name_or_path),
+        config=config,
+        revision=model_args.model_revision,
+        ignore_mismatched_sizes=model_args.ignore_mismatched_sizes,
+    )
+    if lora_ckpt is not None:
+        model.load_state_dict(torch.load(lora_ckpt), strict=False)
+
+    model.half()  # accelerate
+    training_args.fp16 = True
 
     l0_module = None
     if additional_args.pruning_type is not None:
@@ -189,11 +184,6 @@ def main():
         l0_module=l0_module,
         **data_module
     )
-
-    from transformers.integrations import AzureMLCallback, ProgressCallback
-    trainer.remove_callback(AzureMLCallback)
-    trainer.remove_callback(ProgressCallback)
-    logger.info("Remove AzureMLCallback and ProgressCallback in Trainer.")
 
     if additional_args.pretrained_pruned_model is not None:
         if l0_module is None:  # continue train zs instead of load fixed zs

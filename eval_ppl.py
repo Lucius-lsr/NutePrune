@@ -1,20 +1,15 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT license.
-import logging
+
 import os
 import sys
-import datasets
-import transformers
 from transformers import (
     HfArgumentParser,
     TrainingArguments,
     set_seed,
 )
 from args import AdditionalArguments, DataTrainingArguments
-from models.modeling_llama import LlamaForCausalLM
 from utils.nuteprune_utils import load_zs
-from models.modeling_llama import LlamaConfig
-from models.tokenization_llama import LlamaTokenizer
 from models.model_args import ModelArguments
 import torch
 
@@ -24,8 +19,8 @@ from datasets import load_dataset
 from torch.utils.data.dataset import Dataset
 
 def get_wikitext2(seq_len, tokenizer):
-    traindata = load_dataset('wikitext', 'wikitext-2-raw-v1', split='train', revision='f5562967961a45407fa15044c5535a607200983f')
-    testdata = load_dataset('wikitext', 'wikitext-2-raw-v1', split='test', revision='f5562967961a45407fa15044c5535a607200983f')
+    traindata = load_dataset('wikitext', 'wikitext-2-raw-v1', split='train')
+    testdata = load_dataset('wikitext', 'wikitext-2-raw-v1', split='test')
     return traindata, testdata
 
 def get_ptb(seq_len, tokenizer):
@@ -66,7 +61,7 @@ def get_loaders(name, tokenizer, seq_len=2048, batch_size = 8):
     test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
     return train_data, test_loader
 
-def PPLMetric(model, zs, tokenizer, datasets, seq_len=2048, batch_size = 4, device="cuda"):
+def PPLMetric(model, zs, tokenizer, datasets, seq_len=2048, batch_size=4, device="cuda"):
     metric = {}
     for dataset in datasets:
         _, test_loader = get_loaders(dataset, tokenizer, seq_len=seq_len, batch_size = batch_size)
@@ -126,8 +121,22 @@ def main():
     # Set seed before initializing model.
     set_seed(training_args.seed)
 
+    CONFIG, TOKENIZER, CAUSALLM = None, None, None
+    if 'llama' in model_args.model_name_or_path.lower():
+        from transformers.models.llama import LlamaConfig
+        from transformers.models.llama import LlamaForCausalLM
+        from transformers import AutoTokenizer
+        CONFIG, TOKENIZER, CAUSALLM = LlamaConfig, AutoTokenizer, LlamaForCausalLM
+    elif 'mistral' in model_args.model_name_or_path.lower():
+        from transformers.models.mistral import MistralConfig
+        from models.modelling_mistral import MistralForCausalLM
+        from transformers import AutoTokenizer
+        CONFIG, TOKENIZER, CAUSALLM = MistralConfig, AutoTokenizer, MistralForCausalLM
+    else:
+        raise NotImplementedError
+
     # model initialize
-    config = LlamaConfig.from_pretrained(
+    config = CONFIG.from_pretrained(
         model_args.config_name if model_args.config_name else model_args.model_name_or_path,
     )
     config.use_cache = False
@@ -141,28 +150,31 @@ def main():
             lora_ckpt = None
             config.lora_param = ''
     # lora_ckpt = None  # no lora
-    tokenizer = LlamaTokenizer.from_pretrained(
-        model_args.tokenizer_name if model_args.tokenizer_name else model_args.model_name_or_path,
-        padding_side="left",
-        truncation_side="left",
-    )
-    model = LlamaForCausalLM.from_pretrained(
-        LlamaForCausalLM,
+
+    model = CAUSALLM.from_pretrained(
         model_args.model_name_or_path,
-        from_tf=False,
+        from_tf=bool(".ckpt" in model_args.model_name_or_path),
         config=config,
-        lora_ckpt = lora_ckpt
+        revision=model_args.model_revision,
+        ignore_mismatched_sizes=model_args.ignore_mismatched_sizes,
+        # lora_ckpt=lora_ckpt
     )
+    if lora_ckpt is not None:
+        model.load_state_dict(torch.load(lora_ckpt), strict=False)
+
     model.half()
     model.eval()
+    model = model.to('cuda')
+
+    tokenizer = TOKENIZER.from_pretrained(
+        model_args.tokenizer_name if model_args.tokenizer_name else model_args.model_name_or_path,
+    )
 
     zs = None
     if additional_args.pretrained_pruned_model is not None:
         zs = load_zs(os.path.join(additional_args.pretrained_pruned_model, 'zs.pt'))
         for key in zs:
             zs[key] = zs[key].detach()
-
-    model = model.to('cuda')
 
     ppl = PPLMetric(model, zs, tokenizer, ['wikitext2', 'ptb'])
 

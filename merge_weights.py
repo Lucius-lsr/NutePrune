@@ -41,6 +41,8 @@ def update_params(lm_model, zs):
                 head_z = zs["head_z"][layer].cpu().squeeze().clone()
                 head_z = torch.repeat_interleave(head_z, dims_per_head)
                 model.layers[layer].self_attn.v_proj.weight.data = model.layers[layer].self_attn.v_proj.weight.transpose(0, 1).data.mul(head_z).transpose(0, 1)
+                # GQA pruning?
+                # model.layers[layer].self_attn.o_proj.weight.data = model.layers[layer].self_attn.o_proj.weight.data.mul(head_z)
 
         if "hidden_z" in zs:
             hidden_z = zs["hidden_z"].cpu().squeeze().clone()
@@ -88,15 +90,15 @@ def main():
     lora_ckpt = os.path.join(additional_args.pretrained_pruned_model, 'lora_weights.pt')
 
     model = LlamaForCausalLM.from_pretrained(
-        LlamaForCausalLM,
         model_args.model_name_or_path,
         from_tf=bool(".ckpt" in model_args.model_name_or_path),
         config=config,
         cache_dir=model_args.cache_dir,
         revision=model_args.model_revision,
         ignore_mismatched_sizes=model_args.ignore_mismatched_sizes,
-        lora_ckpt = lora_ckpt
     )
+    if lora_ckpt is not None:
+        model.load_state_dict(torch.load(lora_ckpt), strict=False)
 
     def merge_lora(module):
         if hasattr(module, 'merge'):
@@ -107,11 +109,10 @@ def main():
     merge_lora(model)
     
     config.use_lora = False
-    llama = LlamaForCausalLM.from_pretrained(LlamaForCausalLM, model_args.model_name_or_path, config=config)
+    llama = LlamaForCausalLM.from_pretrained(model_args.model_name_or_path, config=config)
     output_path = "./llama_pruned" if training_args.output_dir == "./" else training_args.output_dir
     llama.load_state_dict(model.state_dict(), strict=False)
     print(f"LoRA weights merged! Output path: {output_path}")
-
 
     zs = load_zs(os.path.join(additional_args.pretrained_pruned_model, 'zs.pt'))
     for key in zs:
