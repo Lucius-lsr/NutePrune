@@ -75,7 +75,7 @@ class EfficientTrainer(Trainer):
         self.start_saving_best = False # if self.additional_args.pruning_type is None else False
 
         log_level = args.get_process_log_level()
-        logging.set_verbosity(log_level)
+        logging.set_verbosity(logging.INFO)
         logger.setLevel(log_level)
         self.use_lora = use_lora
         self.lora_train_bias = lora_train_bias
