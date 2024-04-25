@@ -60,7 +60,7 @@ def main():
     )
 
     log_level = training_args.get_process_log_level()
-    logger.setLevel(log_level)
+    logger.setLevel(logging.INFO)
     datasets.utils.logging.set_verbosity(log_level)
     transformers.utils.logging.set_verbosity(log_level)
     transformers.utils.logging.enable_default_handler()
@@ -138,8 +138,13 @@ def main():
     )
     if lora_ckpt is not None:
         model.load_state_dict(torch.load(lora_ckpt), strict=False)
+    else:  # init lora
+        for n, p in model.named_parameters():
+            if 'lora_A' in n:
+                torch.nn.init.kaiming_uniform_(p, a=math.sqrt(5))
 
     model.half()  # accelerate
+    model.enable_input_require_grads()
     training_args.fp16 = True
 
     l0_module = None
