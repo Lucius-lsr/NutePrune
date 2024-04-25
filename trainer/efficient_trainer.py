@@ -228,7 +228,7 @@ class EfficientTrainer(Trainer):
         total_train_batch_size = (
             self.args.train_batch_size
             * self.args.gradient_accumulation_steps
-            * (torch.distributed.get_world_size() if self.args.local_rank != -1 else 1)
+            # * (torch.distributed.get_world_size() if self.args.local_rank != -1 else 1)
         )
 
         logger.info("***** Running training *****")
@@ -302,7 +302,7 @@ class EfficientTrainer(Trainer):
 
                 loss_terms = self.training_step(model, self.additional_args.do_distill, inputs)
                 if loss_terms is None:
-                    print('inf detected, skip')
+                    print('inf or nan detected, skip')
                     continue
                 tr_loss_step = loss_terms["loss"]
                 ce_loss_step = loss_terms["ce_loss"]
@@ -642,6 +642,8 @@ class EfficientTrainer(Trainer):
         else:
             loss = self.compute_loss(model, inputs)
         if torch.isinf(loss).any():
+            return None
+        if torch.isnan(loss).any():
             return None
 
         ce_loss = loss.clone()
