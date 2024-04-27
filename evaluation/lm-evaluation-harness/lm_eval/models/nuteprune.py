@@ -28,15 +28,6 @@ def set_lora_args(config, lora_param):
 
 
 class HuggingFaceAutoLM(BaseLM):
-    import sys
-    from models.modeling_llama import LlamaConfig
-    from models.tokenization_llama import LlamaTokenizer
-    from models.modeling_llama import LlamaForCausalLM
-    AUTO_CONFIG_CLASS: transformers.AutoConfig = LlamaConfig
-    AUTO_TOKENIZER_CLASS: transformers.AutoTokenizer = LlamaTokenizer
-    AUTO_MODEL_CLASS: transformers.AutoModel = LlamaForCausalLM
-    AUTO_PEFT_CLASS = LlamaForCausalLM
-
     # Default max sequence length setting for when no `max_length` is provided
     # or no max length config setting is found in the model or tokenizer.
     _DEFAULT_MAX_LENGTH: int = 2048
@@ -160,12 +151,25 @@ class HuggingFaceAutoLM(BaseLM):
             self._batch_size = int(batch_size)
         self.max_batch_size = max_batch_size
 
+            # model initialize
+        CONFIG, TOKENIZER, CAUSALLM = None, None, None
+        if 'llama' in pretrained:
+            from models.modeling_llama import LlamaForCausalLM
+            from transformers.models.llama import LlamaConfig
+            from transformers import AutoTokenizer
+            CONFIG, TOKENIZER, CAUSALLM = LlamaConfig, AutoTokenizer, LlamaForCausalLM
+        elif 'mistral' in pretrained:
+            from transformers.models.mistral import MistralConfig
+            from models.modelling_mistral import MistralForCausalLM
+            from transformers import AutoTokenizer
+            CONFIG, TOKENIZER, CAUSALLM = MistralConfig, AutoTokenizer, MistralForCausalLM
+        else:
+            raise NotImplementedError
+
         self._max_gen_toks = max_gen_toks
         self._max_length = max_length
-        self._config = self.AUTO_CONFIG_CLASS.from_pretrained(
+        self._config = CONFIG.from_pretrained(
             pretrained,
-            # trust_remote_code=trust_remote_code,
-            # revision=revision + ("/" + subfolder if subfolder is not None else ""),
         )
         self._config.use_cache = False
         lora_ckpt = None
@@ -173,7 +177,7 @@ class HuggingFaceAutoLM(BaseLM):
         self._config = set_lora_args(self._config, lora_param)
 
         self._add_special_tokens = add_special_tokens
-        self.tokenizer = self.AUTO_TOKENIZER_CLASS.from_pretrained(
+        self.tokenizer = TOKENIZER.from_pretrained(
             pretrained,
             padding_side="left",
             truncation_side="left",
@@ -191,29 +195,17 @@ class HuggingFaceAutoLM(BaseLM):
                     self._config.lora_param = ''
             zs = torch.load(os.path.join(peft, 'zs.pt'), map_location="cpu")
 
-            if zs["head_z"].shape[0] < self._config.num_hidden_layers:
-                if zs["head_z"].shape[0] == 26:
-                    zs["head_z"] = torch.concat([torch.ones(4, 1, 32, 1, 1), zs["head_z"], torch.ones(2, 1, 32, 1, 1)])
-                    zs["intermediate_z"] = torch.concat([torch.ones(4, 1, 1, 11008), zs["intermediate_z"], torch.ones(2, 1, 1, 11008)])
-                elif zs["head_z"].shape[0] == 28:
-                    zs["head_z"] = torch.concat([torch.ones(3, 1, 32, 1, 1), zs["head_z"], torch.ones(1, 1, 32, 1, 1)])
-                    zs["intermediate_z"] = torch.concat([torch.ones(3, 1, 1, 11008), zs["intermediate_z"], torch.ones(1, 1, 1, 11008)])
-
-            if "layer_z" in zs:
-                zs['head_layer_z'] = zs['layer_z']
-                zs['mlp_z'] = zs['layer_z']
-                zs.pop('layer_z')
             for key in zs:
                 zs[key] = zs[key].cuda().detach().half()
             self.zs = zs
 
-        self.model = self.AUTO_MODEL_CLASS.from_pretrained(
-                self.AUTO_MODEL_CLASS,
+        self.model = CAUSALLM.from_pretrained(
                 pretrained,
                 from_tf=False,
                 config=self._config,
-                lora_ckpt = lora_ckpt
             )
+        if lora_ckpt is not None:
+            self.model.load_state_dict(torch.load(lora_ckpt), strict=False)
         
         self.model.half()
         self.model.eval()
@@ -396,7 +388,7 @@ class AutoCausalLM(HuggingFaceAutoLM):
     def _model_call(
         self, inputs: TokenSequence, labels: Optional[TokenSequence] = None
     ) -> TokenSequence:
-        inputs = torch.concat([self.prompt_input_ids.unsqueeze(0).to(inputs.dtype), inputs], dim=-1)
+        inputs = torch.concat([self.prompt_input_ids.unsqueeze(0).repeat(inputs.shape[0], 1).to(inputs.dtype), inputs], dim=-1)
         return self.model(inputs, **self.zs)["logits"]
 
     def _model_generate(self, context, max_length, eos_token_id):
@@ -625,3 +617,4 @@ def stop_sequences_criteria(
             ],
         ]
     )
+ 
