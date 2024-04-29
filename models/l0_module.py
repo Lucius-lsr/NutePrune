@@ -69,8 +69,8 @@ class L0Module(Module):
         self.prunable_model_size = 0 
         self.stable_model_size = 0
         if self.num_attention_heads > self.num_key_value_heads:
-            self.full_model_size += self.hidden_size * self.hidden_size / (self.num_attention_heads // self.num_key_value_heads) * 2
-            self.stable_model_size += self.hidden_size * self.hidden_size / (self.num_attention_heads // self.num_key_value_heads) * 2
+            self.full_model_size += self.num_hidden_layers * self.hidden_size * self.hidden_size / (self.num_attention_heads // self.num_key_value_heads) * 2
+            self.stable_model_size += self.num_hidden_layers * self.hidden_size * self.hidden_size / (self.num_attention_heads // self.num_key_value_heads) * 2
 
         self.temperature = temperature
         self.droprate_init = droprate_init if droprate_init != 0. else 0.5
