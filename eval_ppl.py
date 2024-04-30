@@ -124,7 +124,7 @@ def main():
     CONFIG, TOKENIZER, CAUSALLM = None, None, None
     if 'llama' in model_args.model_name_or_path.lower():
         from transformers.models.llama import LlamaConfig
-        from transformers.models.llama import LlamaForCausalLM
+        from models.modelling_llama import LlamaForCausalLM
         from transformers import AutoTokenizer
         CONFIG, TOKENIZER, CAUSALLM = LlamaConfig, AutoTokenizer, LlamaForCausalLM
     elif 'mistral' in model_args.model_name_or_path.lower():
