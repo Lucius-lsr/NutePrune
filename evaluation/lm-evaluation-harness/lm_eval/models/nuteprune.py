@@ -153,12 +153,12 @@ class HuggingFaceAutoLM(BaseLM):
 
             # model initialize
         CONFIG, TOKENIZER, CAUSALLM = None, None, None
-        if 'llama' in pretrained:
+        if 'llama' in pretrained.lower():
             from models.modeling_llama import LlamaForCausalLM
             from transformers.models.llama import LlamaConfig
             from transformers import AutoTokenizer
             CONFIG, TOKENIZER, CAUSALLM = LlamaConfig, AutoTokenizer, LlamaForCausalLM
-        elif 'mistral' in pretrained:
+        elif 'mistral' in pretrained.lower():
             from transformers.models.mistral import MistralConfig
             from models.modelling_mistral import MistralForCausalLM
             from transformers import AutoTokenizer
