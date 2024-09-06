@@ -1,5 +1,5 @@
 <h1 align="center"> 
-<p> NutePrune </p>
+<p> NutePrune: Efficient Progressive Pruning with Numerous Teachers for Large Language Models </p>
 </h1>
 
 ## Install dependencies
